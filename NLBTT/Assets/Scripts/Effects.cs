@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 using static Card;
 using static Cardtypes;
 //using static CardGenerator;
@@ -23,5 +23,5 @@ public class Effects : MonoBehaviour
         {
             Items.ItemRule();
         }
-     }*/
-}
+     }
+}*/

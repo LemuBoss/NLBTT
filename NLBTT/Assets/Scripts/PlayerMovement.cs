@@ -1,6 +1,6 @@
-﻿using UnityEngine;
+﻿/*using UnityEngine;
 using UnityEngine.InputSystem; // Wichtig für neuen Input System Support
-using static Player;
+using static Player2;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -113,7 +113,7 @@ public class PlayerMovement : MonoBehaviour
     void StartAction()
     {
         Debug.Log("Aktion gestartet");
-    }*/
+    }
 
 
     private Player player;
@@ -170,4 +170,4 @@ public class PlayerMovement : MonoBehaviour
     }
 
 
-}
+}*/

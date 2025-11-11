@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿/*using UnityEngine;
 using static Cardtypes;
 
 public class FieldGenerator : MonoBehaviour
@@ -60,4 +60,4 @@ public class FieldGenerator : MonoBehaviour
 
         Debug.Log("Spielfeld generiert!");
     }
-}
+}*/

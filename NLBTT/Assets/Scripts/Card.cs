@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 
 [RequireComponent(typeof(Collider))]
 public class Card : MonoBehaviour
@@ -45,4 +45,4 @@ public class Card : MonoBehaviour
         if (player.IsAdjacent(this))
             player.MoveTo(this);
     }
-}
+}*/
