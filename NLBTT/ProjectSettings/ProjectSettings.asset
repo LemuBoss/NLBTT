@@ -4,7 +4,7 @@
 PlayerSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 28
-  productGUID: 76836d41cf2eae745b419d7357bb134e
+  productGUID: 3ad6d704229c3b547a04b083ac0662f5
   AndroidProfiler: 0
   AndroidFilterTouchesWhenObscured: 0
   AndroidEnableSustainedPerformanceMode: 0
@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: DefaultCompany
-  productName: NLBTT
+  productName: Cardgame
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -844,14 +844,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: NLBTT
+  metroPackageName: Cardgame
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: NLBTT
+  metroApplicationDescription: Cardgame
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0
@@ -920,13 +920,13 @@ PlayerSettings:
   qnxGraphicConfPath: 
   apiCompatibilityLevel: 6
   captureStartupLogs: {}
-  activeInputHandler: 1
+  activeInputHandler: 2
   windowsGamepadBackendHint: 0
-  cloudProjectId: 16e7cbaf-2254-4c90-a666-94e0c6a3c857
+  cloudProjectId: 754fa83c-70a5-4a54-ba93-d8acfb01d887
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: NLBTT
-  organizationId: lemuel0208
+  projectName: Cardgame
+  organizationId: katolato41
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
