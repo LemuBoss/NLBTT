@@ -11,60 +11,68 @@ public class GameOverUIManager : MonoBehaviour
     [Header("UI Panels")]
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private GameObject victoryPanel;
-    
+
     [Header("Game Over Panel Elements")]
     [SerializeField] private TextMeshProUGUI gameOverTitleText;
     [SerializeField] private TextMeshProUGUI gameOverMessageText;
     [SerializeField] private Button gameOverRestartButton;
     [SerializeField] private TextMeshProUGUI gameOverRestartButtonText;
-    
+
     [Header("Victory Panel Elements")]
     [SerializeField] private TextMeshProUGUI victoryTitleText;
     [SerializeField] private TextMeshProUGUI victoryMessageText;
     [SerializeField] private Button victoryRestartButton;
     [SerializeField] private TextMeshProUGUI victoryRestartButtonText;
-    
+
     private Player player;
     private bool isGameEnded = false;
-    
-    private void Awake()
+    private BoardManager boardManager;
+
+    public void Awake()
     {
         // Hide both panels initially
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
-        
+
         if (victoryPanel != null)
             victoryPanel.SetActive(false);
-        
+
         // Set up button listeners
         if (gameOverRestartButton != null)
             gameOverRestartButton.onClick.AddListener(OnRestartClicked);
-        
+
         if (victoryRestartButton != null)
             victoryRestartButton.onClick.AddListener(OnRestartClicked);
-        
+
         // Set default button text
         if (gameOverRestartButtonText != null)
             gameOverRestartButtonText.text = "Neustart";
-        
+
         if (victoryRestartButtonText != null)
             victoryRestartButtonText.text = "Neustart";
-        
+
         // Set default title texts
         if (gameOverTitleText != null)
             gameOverTitleText.text = "GAME OVER";
-        
+
         if (victoryTitleText != null)
             victoryTitleText.text = "VICTORY!";
-        
+
         // Find player reference
         player = Object.FindFirstObjectByType<Player>();
         if (player == null)
         {
             Debug.LogWarning("GameOverUIManager: Player not found in scene!");
         }
+
+        // Find board manager reference
+        boardManager = Object.FindFirstObjectByType<BoardManager>();
+        if (boardManager == null)
+        {
+            Debug.LogWarning("GameOverUIManager: BoardManager not found in scene!");
+        }
     }
-    
+
     private void Update()
     {
         // Check for game end conditions if game hasn't ended yet
@@ -73,7 +81,7 @@ public class GameOverUIManager : MonoBehaviour
             CheckGameEndConditions();
         }
     }
-    
+
     /// <summary>
     /// Checks if the player has met win or loss conditions
     /// </summary>
@@ -85,7 +93,7 @@ public class GameOverUIManager : MonoBehaviour
             ShowGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
             return;
         }
-        
+
         // Check for victory (win condition)
         // Note: You'll need to expose AltarRequirements and bloodpointsStoredInAltar
         // as public properties in the Player class for this to work
@@ -94,7 +102,7 @@ public class GameOverUIManager : MonoBehaviour
             ShowVictory($"Du hast genug Blutpunkte gesammelt! {player.GetBloodpointsInAltar()}/{GetAltarRequirement()} Blutpunkte im Altar.");
         }
     }
-    
+
     /// <summary>
     /// Gets the altar requirement from the player
     /// You'll need to add a public getter in Player.cs: public int GetAltarRequirement() => AltarRequirements;
@@ -105,7 +113,7 @@ public class GameOverUIManager : MonoBehaviour
         // You should add a public getter in Player.cs to expose AltarRequirements
         return 10; // Default value - replace with player.GetAltarRequirement() once implemented
     }
-    
+
     /// <summary>
     /// Shows the Game Over window with a custom message
     /// </summary>
@@ -113,18 +121,21 @@ public class GameOverUIManager : MonoBehaviour
     {
         if (isGameEnded)
             return; // Already showing an end screen
-        
+
         isGameEnded = true;
-        
+
         if (gameOverMessageText != null)
             gameOverMessageText.text = message;
-        
+
         if (gameOverPanel != null)
             gameOverPanel.SetActive(true);
-        
+
+        // Disable all card colliders to prevent blocking UI clicks
+        DisableAllCardColliders();
+
         Debug.Log($"[GameOverUIManager] Game Over: {message}");
     }
-    
+
     /// <summary>
     /// Shows the Victory window with a custom message
     /// </summary>
@@ -132,42 +143,88 @@ public class GameOverUIManager : MonoBehaviour
     {
         if (isGameEnded)
             return; // Already showing an end screen
-        
+
         isGameEnded = true;
-        
+
         if (victoryMessageText != null)
             victoryMessageText.text = message;
-        
+
         if (victoryPanel != null)
             victoryPanel.SetActive(true);
-        
+
+        // Disable all card colliders to prevent blocking UI clicks
+        DisableAllCardColliders();
+
         Debug.Log($"[GameOverUIManager] Victory: {message}");
     }
-    
+
+    /// <summary>
+    /// Disables all card colliders to prevent them from blocking UI button clicks
+    /// </summary>
+    private void DisableAllCardColliders()
+    {
+        CardVisual[] allCards = Object.FindObjectsByType<CardVisual>(FindObjectsSortMode.None);
+        foreach (CardVisual card in allCards)
+        {
+            Collider collider = card.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+        }
+        Debug.Log($"[GameOverUIManager] Disabled {allCards.Length} card colliders");
+    }
+
+    /// <summary>
+    /// Enables all card colliders after restart
+    /// </summary>
+    private void EnableAllCardColliders()
+    {
+        CardVisual[] allCards = Object.FindObjectsByType<CardVisual>(FindObjectsSortMode.None);
+        foreach (CardVisual card in allCards)
+        {
+            Collider collider = card.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = true;
+            }
+        }
+        Debug.Log($"[GameOverUIManager] Enabled {allCards.Length} card colliders");
+    }
+
     /// <summary>
     /// Called when the player clicks the Restart button
     /// </summary>
     private void OnRestartClicked()
     {
         Debug.Log("[GameOverUIManager] Restart button clicked");
-        
+
+        // Hide both panels immediately
+        HideAllPanels();
+
+        // CRITICAL: Reset the game ended flag AFTER hiding panels
+        // This prevents Update() from re-showing panels during restart
+        isGameEnded = false;
+
         // Reset player resources
         ResetPlayerResources();
-        
-        // Hide both panels
-        HideAllPanels();
-        
-        // Reset game ended flag
-        isGameEnded = false;
-        
-        // TODO: Add additional restart logic here:
-        // - Regenerate the board
-        // - Reset player position
-        // - Reset any other game state
-        
-        Debug.Log("[GameOverUIManager] Game restarted");
+
+        // Regenerate the board
+        if (boardManager != null)
+        {
+            boardManager.RegenerateBoard();
+        }
+        else
+        {
+            Debug.LogError("GameOverUIManager: Cannot regenerate board - BoardManager is null!");
+        }
+
+        // Re-enable card colliders after a short delay to ensure board is regenerated
+        Invoke(nameof(EnableAllCardColliders), 0.1f);
+
+        Debug.Log("[GameOverUIManager] Game restarted - interactions re-enabled");
     }
-    
+
     /// <summary>
     /// Resets the player's resources to their starting values
     /// </summary>
@@ -178,7 +235,7 @@ public class GameOverUIManager : MonoBehaviour
             Debug.LogError("GameOverUIManager: Cannot reset resources - Player is null!");
             return;
         }
-        
+
         // Reset to starting values
         // You may want to make these configurable in the Inspector
         player.modifyHealth(5 - player.GetHealth()); // Set to 5
@@ -186,10 +243,10 @@ public class GameOverUIManager : MonoBehaviour
         player.modifyStamina(5 - player.GetStamina()); // Set to 5
         player.modifyBloodpoints(-player.GetBloodpoints()); // Set to 0
         player.modifyBloodpointCardVisited(-player.GetBloodpointCardsVisited()); // Set to 0
-        
+
         Debug.Log("[GameOverUIManager] Player resources reset to starting values");
     }
-    
+
     /// <summary>
     /// Hides all game end UI panels
     /// </summary>
@@ -197,23 +254,20 @@ public class GameOverUIManager : MonoBehaviour
     {
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
-        
+
         if (victoryPanel != null)
             victoryPanel.SetActive(false);
-        
-        isGameEnded = false;
     }
-    
+
     /// <summary>
     /// Returns whether any game end screen is currently showing
     /// Used by CardVisual and other systems to block interactions
     /// </summary>
     public bool IsShowingGameEnd()
     {
-        return (gameOverPanel != null && gameOverPanel.activeSelf) ||
-               (victoryPanel != null && victoryPanel.activeSelf);
+        return isGameEnded;
     }
-    
+
     /// <summary>
     /// Returns whether the game has ended (win or loss)
     /// </summary>
@@ -221,7 +275,7 @@ public class GameOverUIManager : MonoBehaviour
     {
         return isGameEnded;
     }
-    
+
     /// <summary>
     /// Static helper to check if game is paused/ended from anywhere
     /// </summary>

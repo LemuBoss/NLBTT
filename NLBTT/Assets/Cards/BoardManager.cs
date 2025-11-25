@@ -425,6 +425,11 @@ public class BoardManager : MonoBehaviour
         Debug.LogWarning("BoardManager: No Altar card found on the board!");
         return new Vector2Int(-1, -1); // Sentinel value for not found
     }
+
+    public void UpdateAdjacentCards()
+    {
+        UpdateAllCardOutlines();
+    }
 }
 
 [System.Serializable]

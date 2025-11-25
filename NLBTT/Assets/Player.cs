@@ -252,8 +252,25 @@ public class Player : MonoBehaviour
         Debug.Log($"[Player] Player chip moved to world position {newChipPosition}, chip active: {playerChipInstance.activeSelf}");
         LogDebug($"Player chip moved to world position {newChipPosition}");
     }
-    
-    
+
+   /* /// <summary>
+    /// Resets the player's resources to their starting values
+    /// </summary>
+    private void ResetPlayerResources()
+    {
+        if (player == null)
+        {
+            Debug.LogError("GameOverUIManager: Cannot reset resources - Player is null!");
+            return;
+        }
+
+        // Use the Player's ResetToStartingValues method
+        player.ResetToStartingValues();
+
+        Debug.Log("[GameOverUIManager] Player resources and position reset to starting values");
+    }*/
+
+
     // Resource Management //
 
     public void modifyHunger(int amount)
