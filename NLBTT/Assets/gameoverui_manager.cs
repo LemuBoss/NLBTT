@@ -224,7 +224,7 @@ public class GameOverUIManager : MonoBehaviour
         // Reset to starting values
         // You may want to make these configurable in the Inspector
         player.modifyHealth(5 - player.GetHealth()); // Set to 5
-        player.modifyHunger(20 - player.GetHunger()); // Set to 20
+        player.modifyHunger(player.GetHungerCap()); // Set to 20
         player.modifyStamina(5 - player.GetStamina()); // Set to 5
         player.modifyBloodpoints(-player.GetBloodpoints()); // Set to 0
         player.modifyBloodpointCardVisited(-player.GetBloodpointCardsVisited()); // Set to 0

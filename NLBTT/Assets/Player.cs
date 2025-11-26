@@ -21,8 +21,10 @@ public class Player : MonoBehaviour
     [SerializeField] private bool showDebugLogs = true;
 
     [Header("Resources")] 
-    [SerializeField] private int totalHunger = 20;
-    [SerializeField] private int hungerCap = 20;
+    [SerializeField] private int totalHunger = 30;
+    [SerializeField] private int hungerCap = 30;
+    [SerializeField] private int hungerConsumption = 1;
+    private int starvationPenalty = 0;
 
     [SerializeField] private int totalStamina = 5;
     [SerializeField] private int staminaCap = 5;
@@ -149,7 +151,7 @@ public class Player : MonoBehaviour
         targetCard.OnPlayerEnter();
         
         // Apply hunger cost for successful movement
-        modifyHunger(-1);
+        modifyHunger(-hungerConsumption);
         LogDebug($"Hunger reduced by 1. Current hunger: {totalHunger}");
         
         // Check for starvation after movement
@@ -164,6 +166,12 @@ public class Player : MonoBehaviour
         {
             LogDebug("Player has run out of stamina!");
             applyStaminaPenalty();
+        }
+
+        if (isStaminaFull())
+        {
+            LogDebug("Player stamina is full!");
+            removeStaminaPenalty();
         }
 
         if (isSatiated())
@@ -303,6 +311,11 @@ public class Player : MonoBehaviour
         return totalStamina <= 0;
     }
 
+    public bool isStaminaFull()
+    {
+        return totalStamina == staminaCap;
+    }
+
     public bool isStarving()
     {
         return totalHunger <= 0;
@@ -315,41 +328,24 @@ public class Player : MonoBehaviour
 
     public void applyStaminaPenalty()
     {
-        if (staminaPenaltyApplied < totalHealth)
-        {
-            modifyHealth(-1);
-            staminaPenaltyApplied += 1;
-            LogDebug("Stamina penalty applied: Lost 1 health");
-        }
-        else
-        {
-            LogDebug("Stamina penalty already applied: Player can't die from losing all stamina.");
-        }
+        hungerConsumption = 2;
     }
 
+    public void removeStaminaPenalty()
+    {         hungerConsumption = 1;
+       }
     public void applyStarvation()
     {
-        if (!starvationApplied)
+        if (totalHealth > 1)
         {
-            staminaCap = Mathf.Max(0, staminaCap - 3);
-            starvationApplied = true;
-            LogDebug($"Starvation applied: Stamina cap reduced by 3 to {staminaCap}");
-            
-            // If current stamina exceeds new cap, reduce it
-            if (totalStamina > staminaCap)
-            {
-                totalStamina = staminaCap;
-            }
+            totalHealth -= 1;
         }
     }
 
     public void applySatiationBonus()
 {
-    if (starvationApplied)
-    {
-        staminaCap = 5; 
-        starvationApplied = false; 
-        LogDebug($"Satiation bonus applied: Stamina cap restored to {staminaCap}");
+    if (totalHealth < 5)
+            {         totalHealth += 1;
     }
 }
 
@@ -426,6 +422,11 @@ public class Player : MonoBehaviour
             {
                 ExchangeHealthForBloodpoints();
             }
+
+            if (UnityEngine.InputSystem.Keyboard.current.digit3Key.wasPressedThisFrame)
+            {
+                ExchangeFoodForHealth();
+            }
         }
         // Fallback to old Input system if new system not available
         else if (Input.GetKeyDown(KeyCode.Alpha1))
@@ -435,6 +436,11 @@ public class Player : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             ExchangeHealthForBloodpoints();
+        }
+
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            ExchangeFoodForHealth();
         }
     }
     
@@ -479,6 +485,25 @@ public class Player : MonoBehaviour
     public void ExchangeHealthForBloodpoints()
     {
         exchangeHealthForBloodpoints();
+    }
+
+    public void ExchangeFoodForHealth()
+    {
+        exchangeFoodForHealth();
+    }
+
+    private void exchangeFoodForHealth()
+    {
+        if (totalHealth < 5 && totalHunger > 0)
+        {
+            totalHunger -= 5;
+            totalHealth += 1;
+            Debug.Log("[Player] Exchanged 5 Food for 1 Health");
+        }
+        else
+        {
+            Debug.Log("[Player] Cannot exchange Food for Health - either Health is full or not enough Food");
+        }
     }
 
     public void DepositBloodpointsToAltar()
@@ -554,8 +579,8 @@ public class Player : MonoBehaviour
 public void ResetToStartingValues()
 {
     // Reset resources to starting values
-    totalHunger = 20;
-    hungerCap = 20;
+    totalHunger = hungerCap;
+    hungerCap = hungerCap;
     totalStamina = 5;
     staminaCap = 5;
     totalHealth = 5;

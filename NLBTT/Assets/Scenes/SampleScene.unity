@@ -245,8 +245,8 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   pauseTextContent: "SPIEL PAUSIERT\r\n\r\n<size=18>Steuerung:</size>\r\nKlicke auf
-    benachbarte Karten um dich zu bewegen\r\n[1] - Hunger in Blutpunkte umwandeln\r\n[2]
-    - Gesundheit in Blutpunkte umwandeln\r\n[ENTER] - Blutpunkte am Altar deponieren\r\n[ESC]
+    benachbarte Karten um dich zu bewegen\n[1] - Gesundheit in Blutpunkte umwandeln\r\n[2]
+    - Hunger in Blutpunkte umwandeln\r\n[ENTER] - Blutpunkte am Altar deponieren\r\n[ESC]
     - Spiel pausieren/fortsetzen\r\n\r\n<size=18>Ziel:</size>\r\nSammle Blutpunkte
     und \xFCberlebe die Reise durch den Wald.\r\nVerwalte deine Ressourcen weise!"
 --- !u!1 &255114281
@@ -4317,8 +4317,9 @@ MonoBehaviour:
   playerChipPrefab: {fileID: 4875694727836364403, guid: d8e374a51cdd2c94c8da5cd5f14cd2c0, type: 3}
   chipOffset: {x: 0, y: 0.05, z: 0}
   showDebugLogs: 1
-  totalHunger: 20
-  hungerCap: 20
+  totalHunger: 30
+  hungerCap: 30
+  hungerConsumption: 1
   totalStamina: 5
   staminaCap: 5
   totalHealth: 5
@@ -6365,12 +6366,17 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   pauseTextContent: "SPIEL PAUSIERT\r\n\r\n<size=18>Steuerung:</size>\r\nKlicke auf
-    benachbarte Karten um dich zu bewegen\r\n[1] - Nahrung in Blutpunkte umwandeln\r\n[2]
-    - Gesundheit in Blutpunkte umwandeln\r\n[ENTER] - Blutpunkte am Altar deponieren\r\n[ESC]
+    benachbarte Karten um dich zu bewegen\r\n[TASTE 1] - Gesundheit in Blutpunkte
+    umwandeln\r\n[TASTE 2] - Nahrung in Blutpunkte umwandeln\n[TASTE 3] - Nahrung
+    in Gesundheit (5) umwandeln\r\n[ENTER] - Blutpunkte am Altar deponieren\r\n[ESC]
     - Spiel pausieren/fortsetzen\r\n\r\n<size=18>Ziel:</size>\r\nSammle Blutpunkte
-    und \xFCberlebe die Reise durch den Wald.\nBlutpunkte k\xF6nnen auf besonderen
-    Karten gefunden werden. Bewegungen kosten Nahrung. Terrain zieht dir Ausdauer
-    ab. \r\nBehalte deine Ressourcen im Blick!"
+    und liefere sie am Altar ab. Der Altar liegt tief im Wald versteckt. Blutpunkte
+    k\xF6nnen auf besonderen Karten gefunden werden. \n\nBehalte deine Ressourcen
+    im Blick!\nBewegungen kosten Nahrung. Terrain (Wald, Sumpf) zieht dir Ausdauer
+    ab. Der vollst\xE4ndige Verlust von Ausdauer f\xFChrt zu h\xF6herem Nahrungsverbrauch,
+    der nur r\xFCckg\xE4ngig gemacht werden kann, wenn du dich vollst\xE4ndig auf
+    neutralen Karten erholst. F\xE4llt deine Nahrung auf 0, verlierst du Gesundheit,
+    und deine Reise wird erschwert.\r\n"
 --- !u!4 &2139153674
 Transform:
   m_ObjectHideFlags: 0

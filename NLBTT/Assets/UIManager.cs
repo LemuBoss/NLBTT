@@ -81,13 +81,13 @@ public class UIManager : MonoBehaviour
             return;
         
         if (hungerText != null)
-            hungerText.text = $"NAHRUNG: {player.GetHunger()}/{player.GetHungerCap()} [2]";
+            hungerText.text = $"NAHRUNG: {player.GetHunger()}/{player.GetHungerCap()} [2] ZUM UMWANDELN";
         
         if (staminaText != null)
             staminaText.text = $"AUSDAUER: {player.GetStamina()}/{player.GetStaminaCap()}";
         
         if (healthText != null)
-            healthText.text = $"GESUNDHEIT: {player.GetHealth()} [1]";
+            healthText.text = $"GESUNDHEIT: {player.GetHealth()} [1] ZUM UMWANDELN";
         
         if (bloodpointsText != null)
             bloodpointsText.text = $"BLUTPUNKTE: {player.GetBloodpoints()}";
