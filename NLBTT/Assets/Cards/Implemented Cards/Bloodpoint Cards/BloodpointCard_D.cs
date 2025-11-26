@@ -15,7 +15,7 @@ public class BloodpointCard_D : BloodPointEventCard //Randomizer
         player.modifyBloodpoints(randomizedPoints);
         if (randomizedPoints > 0)
         {
-            SetResultText($"Die dunklen Geister des Waldes treiben ihre Spielchen mit dir. Sie sind dir wohlgesonnen, und belohnen dein Vertrauen. \n\n+{randomizedPoints} Blutpunkte erhalten.");
+            SetResultText($"Die dunklen Geister des Waldes treiben ihre Spielchen mit dir. Sie sind dir wohlgesonnen, und belohnen dein Vertrauen. \n(Erhalte eine zufällige Menge an Blutpunkten)\n+{randomizedPoints} Blutpunkte erhalten.");
         }
         else if (randomizedPoints == 0)
         {
@@ -23,7 +23,7 @@ public class BloodpointCard_D : BloodPointEventCard //Randomizer
         }
         else
         {
-            SetResultText($"Die dunklen Geister des Waldes treiben ihre Spielchen mit dir. Sie verachten dich, dich und deine Naivität. \n\n{randomizedPoints} Blutpunkte.");
+            SetResultText($"Die dunklen Geister des Waldes treiben ihre Spielchen mit dir. Sie verachten dich, dich und deine Naivität. \n(Verliere eine zufällige Menge an Blutpunkten)\n{randomizedPoints} Blutpunkte.");
         }
         Debug.Log($"Player received {randomizedPoints} bloodpoints");
     }

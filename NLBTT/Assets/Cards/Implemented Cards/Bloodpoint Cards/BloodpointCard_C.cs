@@ -23,7 +23,7 @@ public class BloodpointCard_C : BloodPointEventCard // Repeater
             // This is the first bloodpoint card visited
             Debug.Log("No previous bloodpoint card visited. Granting 1 bloodpoint.");
             player.modifyBloodpoints(1);
-            SetResultText($"Der Ort kommt dir fremd vor; gar nichts ist dir vertraut. In deinen Erinnerungen nichts als Nebel. \n\n+1 Blutpunkt erhalten.");
+            SetResultText($"Der Ort kommt dir fremd vor; gar nichts ist dir vertraut. In deinen Erinnerungen nichts als Nebel. \n(Wiederhole den Effekt der letzten Blutpunktekarte)\n+1 Blutpunkt erhalten.");
             Debug.Log("Player gained 1 bloodpoint (first card bonus)");
         }
         else if (lastCard == this)
@@ -37,7 +37,7 @@ public class BloodpointCard_C : BloodPointEventCard // Repeater
             // Repeat the last card's effect by calling its TriggerBloodPointEvent
             Debug.Log($"Repeating effect from: {lastCard.GetType().Name}");
             lastCard.TriggerBloodPointEvent();
-            SetResultText($"Vor dir eine schmenenhafte Gestalt, die sich wandelt und formt. Im Nebel nimmt sie die Gestalt jener Dinge an, die dir auf deiner Reise bereits begegnet sind.");
+            SetResultText($"Vor dir eine schmenenhafte Gestalt, die sich wandelt und formt. Im Nebel nimmt sie die Gestalt jener Dinge an, die dir auf deiner Reise bereits begegnet sind. \n(Wiederhole den Effekt der letzten Blutpunktekarte)");
         }
     }
 }

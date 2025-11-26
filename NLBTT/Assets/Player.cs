@@ -7,6 +7,9 @@ public class Player : MonoBehaviour
 {
     private Vector2Int currentPosition;
     private BoardManager boardManager;
+
+	public AudioSource audioSource;       
+    public AudioClip moveSound;           
     
     [Header("Player Model")]
     [SerializeField] private GameObject playerChipPrefab;
@@ -85,6 +88,7 @@ public class Player : MonoBehaviour
             
             // Update visual position
             UpdatePlayerChipPosition();
+			audioSource.PlayOneShot(moveSound);
         }
     }
 
@@ -139,6 +143,7 @@ public class Player : MonoBehaviour
         
         // Update visual position of player chip
         UpdatePlayerChipPosition();
+		audioSource.PlayOneShot(moveSound);
         
         // Trigger the card's OnPlayerEnter logic
         targetCard.OnPlayerEnter();
@@ -252,25 +257,8 @@ public class Player : MonoBehaviour
         Debug.Log($"[Player] Player chip moved to world position {newChipPosition}, chip active: {playerChipInstance.activeSelf}");
         LogDebug($"Player chip moved to world position {newChipPosition}");
     }
-
-   /* /// <summary>
-    /// Resets the player's resources to their starting values
-    /// </summary>
-    private void ResetPlayerResources()
-    {
-        if (player == null)
-        {
-            Debug.LogError("GameOverUIManager: Cannot reset resources - Player is null!");
-            return;
-        }
-
-        // Use the Player's ResetToStartingValues method
-        player.ResetToStartingValues();
-
-        Debug.Log("[GameOverUIManager] Player resources and position reset to starting values");
-    }*/
-
-
+    
+    
     // Resource Management //
 
     public void modifyHunger(int amount)
@@ -321,14 +309,9 @@ public class Player : MonoBehaviour
     }
 
     public bool isSatiated()
-    {
-        if (totalHunger == hungerCap)
-        {
-            starvationApplied = false;
-            return true;
-        }
-        return false;
-    }
+{
+    return totalHunger == hungerCap;
+}
 
     public void applyStaminaPenalty()
     {
@@ -361,10 +344,14 @@ public class Player : MonoBehaviour
     }
 
     public void applySatiationBonus()
+{
+    if (starvationApplied)
     {
-        staminaCap = 5;
-        LogDebug($"Satiation bonus applied: Stamina cap increased by 2 to {staminaCap}");
+        staminaCap = 5; 
+        starvationApplied = false; 
+        LogDebug($"Satiation bonus applied: Stamina cap restored to {staminaCap}");
     }
+}
 
     public bool isDead()
     {
@@ -521,10 +508,17 @@ public class Player : MonoBehaviour
     /// Override or extend this method to handle game over logic
     /// </summary>
     private void OnPlayerDeath()
-    {
-        Debug.LogWarning("GAME OVER: Player has died!");
+{
+    Debug.LogWarning("GAME OVER: Player has died!");
 
-        // Find and trigger the GameOverUIManager
+    // Queue the game over screen instead of showing immediately
+    if (UIQueueManager.Instance != null)
+    {
+        UIQueueManager.Instance.QueueGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
+    }
+    else
+    {
+        // Fallback if UIQueueManager doesn't exist
         GameOverUIManager gameOverUI = Object.FindFirstObjectByType<GameOverUIManager>();
         if (gameOverUI != null)
         {
@@ -535,6 +529,7 @@ public class Player : MonoBehaviour
             Debug.LogError("GameOverUIManager not found in scene!");
         }
     }
+}
 
     
 
@@ -552,32 +547,33 @@ public class Player : MonoBehaviour
         LogDebug($"Altar requirement set to: {AltarRequirements}");
     }
 
-    /// <summary>
-    /// Resets all player resources to their starting values
-    /// Called when restarting the game
-    /// </summary>
-    public void ResetToStartingValues()
-    {
-        // Reset resources to starting values
-        totalHunger = 20;
-        hungerCap = 20;
-        totalStamina = 5;
-        staminaCap = 5;
-        totalHealth = 5;
-        totalBloodpoints = 0;
-        bloodpointsStoredInAltar = 0;
-        bloodpointCardsVisited = 0;
 
-        // Reset penalty flags
-        staminaPenaltyApplied = 0;
-        starvationApplied = false;
+/// Resets all player resources to their starting values
+/// Called when restarting the game
+/// </summary>
+public void ResetToStartingValues()
+{
+    // Reset resources to starting values
+    totalHunger = 20;
+    hungerCap = 20;
+    totalStamina = 5;
+    staminaCap = 5;
+    totalHealth = 5;
+    totalBloodpoints = 0;
+    bloodpointsStoredInAltar = 0;
+    bloodpointCardsVisited = 0;
 
-        // Clear last bloodpoint card visited
-        lastBloodPointCardVisited = null;
+    // Reset penalty flags
+    staminaPenaltyApplied = 0;
+    starvationApplied = false;
 
-        LogDebug("Player resources reset to starting values");
-    }
+    // Clear last bloodpoint card visited
+    lastBloodPointCardVisited = null;
 
+    LogDebug("Player resources reset to starting values");
+    
+    // Note: Position will be set separately by GameOverUIManager after board regeneration
+}
 
    
 

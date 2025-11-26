@@ -121,7 +121,7 @@ public class UIManager : MonoBehaviour
         
         // Update bloodpoints stored in altar
         if (bloodpointsInAltarText != null)
-            bloodpointsInAltarText.text = $"BLUTPUNKTE IM ALTAR: {player.GetBloodpointsInAltar()}";
+            bloodpointsInAltarText.text = $"BLUTPUNKTE IM ALTAR: {player.GetBloodpointsInAltar()}/{player.GetAltarRequirement()}";
     }
     
     /// <summary>

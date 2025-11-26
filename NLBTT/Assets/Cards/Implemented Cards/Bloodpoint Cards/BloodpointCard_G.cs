@@ -51,11 +51,11 @@ public class BloodpointCard_G : BloodPointEventCard
 
         if (bloodpointsGained < 3)
         {
-            SetResultText($"Dein Schicksal wartet auf dich. Durch die Bäume hindurch siehst du den Glanz, der dich lockt. \n\n+{bloodpointsGained} Blutpunkte erhalten.");
+            SetResultText($"Dein Schicksal wartet auf dich. Durch die Bäume hindurch siehst du den Glanz, der dich lockt. \n(Erhalte Blutpunkte für die Entfernung zwischen dir und dem Altar)\n+{bloodpointsGained} Blutpunkte erhalten.");
         }
         else
         {
-            SetResultText($"Dein Weg wird ein langer sein. Die dunklen Geister des Waldes beobachten deine Mühen mit zunehmenden Interesse. \n\n+{bloodpointsGained} Blutpunkte erhalten.");
+            SetResultText($"Dein Weg wird ein langer sein. Die dunklen Geister des Waldes beobachten deine Mühen mit zunehmenden Interesse. \n(Erhalte Blutpunkte für die Entfernung zwischen dir und dem Altar)\n+{bloodpointsGained} Blutpunkte erhalten.");
         }
         
     }

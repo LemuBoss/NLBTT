@@ -56,12 +56,12 @@ public class BloodpointCard_E : BloodPointEventCard
         {
             player.modifyBloodpoints(bloodpointsGained);
             Debug.Log($"Player gained {bloodpointsGained} bloodpoints ({adjacentTerrainCount} adjacent terrain cards × 2)");
-            SetResultText($"Die Schönheit der Natur ist ein wahres Wunder. Auch die Geister des Waldes erkennen dies an. \n\n+{bloodpointsGained} Blutpunkte erhalten.");
+            SetResultText($"Die Schönheit der Natur ist ein wahres Wunder. Auch die Geister des Waldes erkennen dies an. \n(Erhalte Blutpunkte für jede angrenzende Terrainkarte)\n+{bloodpointsGained} Blutpunkte erhalten.");
         }
         else
         {
             Debug.Log("No adjacent terrain cards found. No bloodpoints gained.");
-            SetResultText($"Die Schönheit der Natur ist ein wahres Wunder. Doch hier, inmitten der trostlosen Einöde, ist das Blattwerk der Bäume oder das Ächzen des Sumpfes nur eine ferne Erinnerung. \n\n+Du erhältst gar nichts.");
+            SetResultText($"Die Schönheit der Natur ist ein wahres Wunder. Doch hier, inmitten der trostlosen Einöde, ist das Blattwerk der Bäume oder das Ächzen des Sumpfes nur eine ferne Erinnerung. \n(Erhalte Blutpunkte für jede angrenzende Terrainkarte)\n+Du erhältst gar nichts.");
         }
     }
 }

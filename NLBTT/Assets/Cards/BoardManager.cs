@@ -177,7 +177,7 @@ public class BoardManager : MonoBehaviour
             return new BloodpointCard_B();
         else if (roll < 0.50f)
             return new BloodpointCard_C();
-        else if (roll < 0.60f)
+        else if (roll < 0.5f)
             return new BloodpointCard_D();
         else if (roll < 0.80f)
             return new BloodpointCard_E();
@@ -424,11 +424,6 @@ public class BoardManager : MonoBehaviour
     
         Debug.LogWarning("BoardManager: No Altar card found on the board!");
         return new Vector2Int(-1, -1); // Sentinel value for not found
-    }
-
-    public void UpdateAdjacentCards()
-    {
-        UpdateAllCardOutlines();
     }
 }
 

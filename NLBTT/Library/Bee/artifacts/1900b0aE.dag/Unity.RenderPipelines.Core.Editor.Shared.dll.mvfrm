@@ -144,7 +144,7 @@ RayTracingAccelerationStructure
 RendererList
 RendererUtils
 RendererListStatus
-RayTracingShaderHelpURLAttribute
+RayTracingShader
 PixelPerfectRendering
 U2D
 SpriteBone
