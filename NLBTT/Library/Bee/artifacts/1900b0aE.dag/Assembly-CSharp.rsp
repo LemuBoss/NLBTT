@@ -465,6 +465,7 @@
 "Assets/Cards/Implemented Cards/SwampCard.cs"
 "Assets/Cards/Implemented Cards/TraderCard.cs"
 "Assets/Cards/Implemented Cards/WolfCard.cs"
+"Assets/Cards/Implemented Cards/WolfdenCard.cs"
 "Assets/Environment/FoliageSpawner.cs"
 "Assets/EventUIManager.cs"
 "Assets/gameoverui_manager.cs"
@@ -509,6 +510,8 @@
 "Assets/TutorialInfo/Scripts/Readme.cs"
 "Assets/UIManager.cs"
 "Assets/UIQueueManager.cs"
+"Assets/Wolf.cs"
+"Assets/WolfAI.cs"
 -langversion:9.0
 /deterministic
 /optimize+

@@ -7,6 +7,7 @@ public class Player : MonoBehaviour
 {
     private Vector2Int currentPosition;
     private BoardManager boardManager;
+    private WolfAI wolfAI;
 
 	public AudioSource audioSource;       
     public AudioClip moveSound;           
@@ -45,12 +46,18 @@ public class Player : MonoBehaviour
     private void Awake()
     {
         boardManager = Object.FindFirstObjectByType<BoardManager>();
-        
+        wolfAI = Object.FindFirstObjectByType<WolfAI>();
+    
         if (boardManager == null)
         {
             Debug.LogError("Player: BoardManager not found in scene!");
         }
-        
+    
+        if (wolfAI == null)
+        {
+            Debug.LogWarning("Player: WolfAI not found in scene!");
+        }
+    
         if (playerChipPrefab == null)
         {
             Debug.LogWarning("Player: No player chip prefab assigned! Player will be invisible.");
@@ -63,6 +70,7 @@ public class Player : MonoBehaviour
             Debug.Log($"[Player] Player chip instantiated: {playerChipInstance.name}");
         }
     }
+
 
     private void Start()
     {
@@ -183,6 +191,11 @@ public class Player : MonoBehaviour
         if (isDead())
         {
             OnPlayerDeath();
+        }
+
+        if (wolfAI != null)
+        {
+            wolfAI.MoveAllWolves();
         }
         
         return true;

@@ -617,8 +617,8 @@ MonoBehaviour:
   playerTag: Player
   autoFindPlayer: 1
   zoomedInHeight: 1.8
-  zoomedInRotationX: 75
-  zoomedInOffset: {x: 0, y: 0, z: -0.22}
+  zoomedInRotationX: 55.7
+  zoomedInOffset: {x: 0, y: 0, z: -0.67}
   cameraSmoothSpeed: 5
   rotationSpeed: 200
   enableRotation: 0
@@ -1273,13 +1273,17 @@ MonoBehaviour:
     prefab: {fileID: 2276366959047621669, guid: ecd2c1701ccad4b4a843e643cda334b5, type: 3}
   - cardTypeName: BloodpointCard_G
     prefab: {fileID: 2276366959047621669, guid: ecd2c1701ccad4b4a843e643cda334b5, type: 3}
-  wolfCardCount: 6
+  - cardTypeName: WolfdenCard
+    prefab: {fileID: 6411834232724539048, guid: be4bdf1bc8bd35e4880645ba8e145d71, type: 3}
+  wolfCardCount: 0
+  wolfdenCardCount: 4
   traderCardCount: 0
   altarCardCount: 1
   hareCardCount: 0
   berryCardCount: 7
   bloodpointCardCount: 15
   playerPosition: {x: 0, y: 0}
+  wolfAI: {fileID: 608633556}
 --- !u!4 &454132363
 Transform:
   m_ObjectHideFlags: 0
@@ -1645,6 +1649,53 @@ MonoBehaviour:
   noiseSpeed: 2
   spikeStrength: 10
   spikeChance: 0.1
+--- !u!1 &608633555
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 608633557}
+  - component: {fileID: 608633556}
+  m_Layer: 0
+  m_Name: WolfAI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &608633556
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 608633555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30304bda7c6ba814f82d28991b34a93f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WolfAI
+  wolfPrefab: {fileID: 4798404842676911995, guid: b382556b7f4523e4c90d20f34cfcae7f, type: 3}
+  backtrackProbability: 0.05
+  showDebugLogs: 1
+--- !u!4 &608633557
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 608633555}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -7.64242, y: 3.56811, z: 0.81896}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &616975639
 GameObject:
   m_ObjectHideFlags: 0
@@ -2816,7 +2867,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -7.000061, y: -15.999878}
+  m_AnchoredPosition: {x: -6.999878, y: -15.999878}
   m_SizeDelta: {x: -1730.49, y: -980}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1014966005
@@ -6514,3 +6565,4 @@ SceneRoots:
   - {fileID: 531148271}
   - {fileID: 1963357179}
   - {fileID: 499628795}
+  - {fileID: 608633557}

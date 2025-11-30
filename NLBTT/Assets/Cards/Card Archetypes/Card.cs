@@ -9,6 +9,7 @@ public abstract class Card
 {
     protected string title;
     protected bool canMoveOnto = true;
+    protected bool blocksLineOfSight = false;
     protected bool turnedAround = true;
     protected bool allowedForShuffle = true;
     
@@ -16,6 +17,7 @@ public abstract class Card
 
     public string Title => title;
     public bool CanMoveOnto => canMoveOnto;
+    public bool BlocksLineOfSight => blocksLineOfSight;
     public bool TurnedAround => turnedAround;
 
     // Called when player moves onto this card

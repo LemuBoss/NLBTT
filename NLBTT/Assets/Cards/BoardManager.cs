@@ -24,6 +24,7 @@ public class BoardManager : MonoBehaviour
     
     [Header("Specific Card Counts")]
     [SerializeField] private int wolfCardCount;
+    [SerializeField] private int wolfdenCardCount;
     [SerializeField] private int traderCardCount;
     [SerializeField] private int altarCardCount;
     [SerializeField] private int hareCardCount;
@@ -32,6 +33,9 @@ public class BoardManager : MonoBehaviour
     
     [Header("Player Position")]
     [SerializeField] private Vector2Int playerPosition;
+    
+    [Header("AI References")]
+    [SerializeField] private WolfAI wolfAI;
     
     private Card[,] cardGrid;
     private CardVisual[,] cardVisualGrid;
@@ -75,6 +79,7 @@ public class BoardManager : MonoBehaviour
         
         // Step 4: Initialize player
         InitializePlayerPosition();
+        
     }
     
     /// <summary>
@@ -174,6 +179,11 @@ public class BoardManager : MonoBehaviour
         for (int i = 0; i < wolfCardCount; i++)
         {
             cardList.Add(new WolfCard());
+        }
+        
+        for (int i = 0; i < wolfdenCardCount; i++)
+        {
+            cardList.Add(new WolfdenCard());
         }
         
         for (int i = 0; i < traderCardCount; i++)
@@ -329,6 +339,16 @@ public class BoardManager : MonoBehaviour
     {
         playerPosition = new Vector2Int(gridWidth / 2, 0);
         UpdateAllCardOutlines();
+    
+        // Spawn wolves after board is set up
+        if (wolfAI != null)
+        {
+            wolfAI.SpawnWolves();
+        }
+        else
+        {
+            Debug.LogWarning("[BoardManager] WolfAI reference is not assigned!");
+        }
     }
     
     public Vector2Int GetPlayerPosition()
@@ -502,6 +522,16 @@ public class BoardManager : MonoBehaviour
     
         Debug.LogWarning("BoardManager: No Altar card found on the board!");
         return new Vector2Int(-1, -1); // Sentinel value for not found
+    }
+    
+    public int GetGridWidth()
+    {
+        return gridWidth;
+    }
+
+    public int GetGridHeight()
+    {
+        return gridHeight;
     }
 }
 

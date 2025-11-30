@@ -200,8 +200,6 @@ public class FoliageDecorator : MonoBehaviour
         placedFoliagePositions.Add(position);
         
         // Debug log for each placement
-        Debug.Log($"FoliageDecorator: Placed '{prefab.name}' at position ({position.x:F2}, {position.y:F2}, {position.z:F2}), " +
-                  $"rotation Y: {randomYRotation:F1}°, scale: {randomScale:F2}x");
     }
     
     /// <summary>
