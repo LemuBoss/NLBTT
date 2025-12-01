@@ -8,6 +8,7 @@ public class Player : MonoBehaviour
     private Vector2Int currentPosition;
     private BoardManager boardManager;
     private WolfAI wolfAI;
+    private ItemsFirstVersion itemsFirstVersion;
 
 	public AudioSource audioSource;       
     public AudioClip moveSound;           
