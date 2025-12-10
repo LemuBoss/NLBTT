@@ -8,9 +8,10 @@ public class Player : MonoBehaviour
     private Vector2Int currentPosition;
     private BoardManager boardManager;
     private WolfAI wolfAI;
-    private ItemsFirstVersion itemsFirstVersion;
+    private ItemManager itemManager;
 
-	public AudioSource audioSource;       
+
+    public AudioSource audioSource;       
     public AudioClip moveSound;           
     
     [Header("Player Model")]
@@ -48,24 +49,29 @@ public class Player : MonoBehaviour
     {
         boardManager = Object.FindFirstObjectByType<BoardManager>();
         wolfAI = Object.FindFirstObjectByType<WolfAI>();
-    
+        itemManager = GetComponent<ItemManager>();  // ADD THIS LINE
+
         if (boardManager == null)
         {
             Debug.LogError("Player: BoardManager not found in scene!");
         }
-    
+
         if (wolfAI == null)
         {
             Debug.LogWarning("Player: WolfAI not found in scene!");
         }
-    
+
+        if (itemManager == null)
+        {
+            Debug.LogError("Player: ItemManager not found! Add ItemManager component to Player.");
+        }
+
         if (playerChipPrefab == null)
         {
             Debug.LogWarning("Player: No player chip prefab assigned! Player will be invisible.");
         }
         else
         {
-            // Instantiate the player chip
             playerChipInstance = Instantiate(playerChipPrefab);
             playerChipInstance.name = "PlayerChip";
             Debug.Log($"[Player] Player chip instantiated: {playerChipInstance.name}");
@@ -213,6 +219,10 @@ public class Player : MonoBehaviour
         {
             wolfAI.MoveAllWolves();
         }
+        if (itemManager != null)
+        {
+            itemManager.DecrementFlashlightCooldown();
+        }
 
         return true;
     }
@@ -294,21 +304,35 @@ public class Player : MonoBehaviour
         Debug.Log($"[Player] Player chip moved to world position {newChipPosition}, chip active: {playerChipInstance.activeSelf}");
         LogDebug($"Player chip moved to world position {newChipPosition}");
     }
-    
-    
+
+
     // Resource Management //
 
     public void modifyHunger(int amount)
     {
         totalHunger = Mathf.Clamp(totalHunger + amount, 0, hungerCap);
         LogDebug($"Hunger modified by {amount}. Current hunger: {totalHunger}/{hungerCap}");
+
+        // Notify ItemManager of food gain
+        if (amount > 0 && itemManager != null)
+        {
+            itemManager.OnFoodGained(amount);
+        }
     }
-    
+
+
     public void modifyHealth(int amount)
     {
+        int oldHealth = totalHealth;
         totalHealth = Mathf.Max(0, totalHealth + amount);
         LogDebug($"Health modified by {amount}. Current health: {totalHealth}");
-        
+
+        // Notify ItemManager of health loss
+        if (amount < 0 && itemManager != null)
+        {
+            itemManager.OnHealthLost(-amount);
+        }
+
         // Check for death
         if (totalHealth <= 0)
         {
@@ -316,19 +340,26 @@ public class Player : MonoBehaviour
             OnPlayerDeath();
         }
     }
-    
+
     public void modifyStamina(int amount)
     {
         totalStamina = Mathf.Clamp(totalStamina + amount, 0, staminaCap);
         LogDebug($"Stamina modified by {amount}. Current stamina: {totalStamina}/{staminaCap}");
     }
-    
+
     public void modifyBloodpoints(int amount)
     {
+        int oldBloodpoints = totalBloodpoints;
         totalBloodpoints = Mathf.Max(0, totalBloodpoints + amount);
         LogDebug($"Bloodpoints modified by {amount}. Current bloodpoints: {totalBloodpoints}");
+
+        // Notify ItemManager of bloodpoint gain
+        if (amount > 0 && itemManager != null)
+        {
+            itemManager.OnBloodpointsGained(amount);
+        }
     }
-    
+
     public void modifyBloodpointCardVisited(int amount)
     {
         bloodpointCardsVisited += amount;
@@ -602,34 +633,44 @@ public class Player : MonoBehaviour
     }
 
 
-/// Resets all player resources to their starting values
-/// Called when restarting the game
-/// </summary>
-public void ResetToStartingValues()
-{
-    // Reset resources to starting values
-    totalHunger = hungerCap;
-    hungerCap = hungerCap;
-    totalStamina = 5;
-    staminaCap = 5;
-    totalHealth = 5;
-    totalBloodpoints = 0;
-    bloodpointsStoredInAltar = 0;
-    bloodpointCardsVisited = 0;
+    /// Resets all player resources to their starting values
+    /// Called when restarting the game
+    /// </summary>
+    public void ResetToStartingValues()
+    {
+        // Reset resources to starting values
+        totalHunger = hungerCap;
+        hungerCap = hungerCap;
+        totalStamina = 5;
+        staminaCap = 5;
+        totalHealth = 5;
+        totalBloodpoints = 0;
+        bloodpointsStoredInAltar = 0;
+        bloodpointCardsVisited = 0;
 
-    // Reset penalty flags
-    staminaPenaltyApplied = 0;
-    starvationApplied = false;
+        // Reset penalty flags
+        staminaPenaltyApplied = 0;
+        starvationApplied = false;
 
-    // Clear last bloodpoint card visited
-    lastBloodPointCardVisited = null;
+        // Clear last bloodpoint card visited
+        lastBloodPointCardVisited = null;
 
-    LogDebug("Player resources reset to starting values");
-    
-    // Note: Position will be set separately by GameOverUIManager after board regeneration
-}
+        // Reset inventory
+        if (itemManager != null)
+        {
+            itemManager.ResetInventory();
+        }
 
-   
+        LogDebug("Player resources reset to starting values");
+    }
+
+    // Add public getter for ItemManager:
+    public ItemManager GetItemManager()
+    {
+        return itemManager;
+    }
+
+
 
     /// <summary>
     /// Helper method for debug logging
