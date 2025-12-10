@@ -1,0 +1,55 @@
+I've implemented a complete item system. Here's what I've created:
+
+## **ItemManager.cs** - Complete Item System
+
+### Key Features:
+1. **All 11 Items from the PDF** with German names:
+   - Taschenlampe (Flashlight)
+   - Hasenstatue (Bunny Statue)
+   - Messer (Knife)
+   - Nadeln im Glas (Jar of Needles)
+   - Getrocknete Libelle (Dried Dragonfly)
+   - Altes Brot (Old Bread)
+   - Haufen Asche (Pile of Ashes)
+   - Krähenfeder (Crow Feather)
+   - Bärenkralle (Bear Claw)
+   - Notrationen (Emergency Food)
+   - Obsidiansplitter (Obsidian Shard)
+
+2. **Inventory Management**:
+   - Maximum 3 items
+   - Player starts with Flashlight
+   - Press **'I'** to toggle inventory UI
+   - Console logging with `LogInventoryToConsole()`
+
+3. **Item Effects Implemented**:
+   - **Passive effects**: Crow Feather (+2 stamina cap)
+   - **On destruction effects**: All items with destruction bonuses
+   - **Trigger effects**: Knife bonus bloodpoints, Pile of Ashes doubling, Old Bread on damage, Emergency Food on food gain, Obsidian Shard auto-resurrection
+
+4. **UI System** (similar to EventUIManager):
+   - Inventory panel showing all items
+   - Item descriptions in German
+   - Close button
+   - Current count display
+
+5. **No Debug Toggle in Inspector**: All debug logging is always active (no serialized field to disable it)
+
+### Integration with Player:
+- ItemManager is attached to the same GameObject as Player
+- Player notifies ItemManager of:
+  - Health loss (for Old Bread, Pile of Ashes, Obsidian Shard)
+  - Food gain (for Emergency Food)
+  - Bloodpoint gain (for Knife, Pile of Ashes)
+- Flashlight cooldown decrements each turn
+
+### Setup Instructions:
+1. Add the **ItemManager** component to your Player GameObject
+2. Create an **Inventory UI Panel** in your Canvas with:
+   - TextMeshProUGUI for title
+   - TextMeshProUGUI for item list
+   - Button for closing
+3. Assign the UI elements in the Inspector
+4. Apply the Player.cs updates I provided
+
+The system is ready to use! Press 'I' in-game to view your inventory. Items will automatically trigger their effects when appropriate conditions are met.
