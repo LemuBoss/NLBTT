@@ -1680,7 +1680,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WolfAI
   wolfPrefab: {fileID: 4798404842676911995, guid: b382556b7f4523e4c90d20f34cfcae7f, type: 3}
   backtrackProbability: 0.05
-  showDebugLogs: 1
+  showDebugLogs: 0
 --- !u!4 &608633557
 Transform:
   m_ObjectHideFlags: 0
