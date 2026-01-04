@@ -16,9 +16,9 @@ public class Player : MonoBehaviour
     
     [Header("Player Model")]
     [SerializeField] private GameObject playerChipPrefab;
-    [SerializeField] private Vector3 chipOffset = new Vector3(0, 0.1f, 0); // Offset above the card to prevent clipping
+    [SerializeField] private Vector3 chipOffset = new Vector3(0, 0.1f, 0);
     
-    private GameObject playerChipInstance; // The instantiated chip
+    private GameObject playerChipInstance;
     
     [Header("Debug Visualization")]
     [SerializeField] private bool showDebugLogs = true;
@@ -49,7 +49,7 @@ public class Player : MonoBehaviour
     {
         boardManager = Object.FindFirstObjectByType<BoardManager>();
         wolfAI = Object.FindFirstObjectByType<WolfAI>();
-        itemManager = GetComponent<ItemManager>();  // ADD THIS LINE
+        itemManager = GetComponent<ItemManager>();
 
         if (boardManager == null)
         {
@@ -170,8 +170,14 @@ public class Player : MonoBehaviour
 
         LogDebug($"Player moved from ({oldPosition.x}, {oldPosition.y}) to ({currentPosition.x}, {currentPosition.y})");
 
+        // NEW: Mark player scent at new position
+        boardManager.SetPlayerScent(currentPosition);
+
         // Update BoardManager with new player position
         boardManager.SetPlayerPosition(currentPosition);
+
+        // NEW: Reveal the target card and all adjacent cards through BoardManager
+        boardManager.RevealCardAndAdjacent(currentPosition);
 
         // Update visual position of player chip
         UpdatePlayerChipPosition();
@@ -215,10 +221,16 @@ public class Player : MonoBehaviour
             OnPlayerDeath();
         }
 
+        // NEW: Decay scent grid after player movement (before wolves move)
+        boardManager.DecayScentGrid();
+
+        // Move wolves and update wolf visibility
         if (wolfAI != null)
         {
             wolfAI.MoveAllWolves();
+            wolfAI.UpdateAllWolfVisibility();
         }
+        
         if (itemManager != null)
         {
             itemManager.DecrementFlashlightCooldown();
@@ -264,7 +276,7 @@ public class Player : MonoBehaviour
         if (playerChipInstance == null)
         {
             Debug.LogWarning("Player: Cannot update chip position - playerChipInstance is null! Assign a prefab in the Inspector.");
-            return; // No model to update
+            return;
         }
         
         if (boardManager == null)
@@ -382,9 +394,9 @@ public class Player : MonoBehaviour
     }
 
     public bool isSatiated()
-{
-    return totalHunger == hungerCap;
-}
+    {
+        return totalHunger == hungerCap;
+    }
 
     public void applyStaminaPenalty()
     {
@@ -392,8 +404,10 @@ public class Player : MonoBehaviour
     }
 
     public void removeStaminaPenalty()
-    {         hungerConsumption = 1;
-       }
+    {
+        hungerConsumption = 1;
+    }
+    
     public void applyStarvation()
     {
         if (totalHealth > 1)
@@ -403,11 +417,12 @@ public class Player : MonoBehaviour
     }
 
     public void applySatiationBonus()
-{
-    if (totalHealth < 5)
-            {         totalHealth += 1;
+    {
+        if (totalHealth < 5)
+        {
+            totalHealth += 1;
+        }
     }
-}
 
     public bool isDead()
     {
@@ -593,28 +608,28 @@ public class Player : MonoBehaviour
     /// Override or extend this method to handle game over logic
     /// </summary>
     private void OnPlayerDeath()
-{
-    Debug.LogWarning("GAME OVER: Player has died!");
+    {
+        Debug.LogWarning("GAME OVER: Player has died!");
 
-    // Queue the game over screen instead of showing immediately
-    if (UIQueueManager.Instance != null)
-    {
-        UIQueueManager.Instance.QueueGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
-    }
-    else
-    {
-        // Fallback if UIQueueManager doesn't exist
-        GameOverUIManager gameOverUI = Object.FindFirstObjectByType<GameOverUIManager>();
-        if (gameOverUI != null)
+        // Queue the game over screen instead of showing immediately
+        if (UIQueueManager.Instance != null)
         {
-            gameOverUI.ShowGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
+            UIQueueManager.Instance.QueueGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
         }
         else
         {
-            Debug.LogError("GameOverUIManager not found in scene!");
+            // Fallback if UIQueueManager doesn't exist
+            GameOverUIManager gameOverUI = Object.FindFirstObjectByType<GameOverUIManager>();
+            if (gameOverUI != null)
+            {
+                gameOverUI.ShowGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
+            }
+            else
+            {
+                Debug.LogError("GameOverUIManager not found in scene!");
+            }
         }
     }
-}
 
     
 

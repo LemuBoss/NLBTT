@@ -1,10 +1,6 @@
 using UnityEngine;
+using System.Collections;
 
-/// <summary>
-/// MonoBehaviour component that handles visual representation and interactions for cards
-/// Attach this to each card GameObject in the scene
-/// Card should be a plane with a material that has front/back texture mapped via UV
-/// </summary>
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(Collider))]
 public class CardVisual : MonoBehaviour
@@ -23,9 +19,15 @@ public class CardVisual : MonoBehaviour
     [SerializeField] private Color walkableOutlineColor = Color.green;
     [SerializeField] private Color unwalkableOutlineColor = Color.red;
 
+    [Header("Flip Animation Settings")]
+    [SerializeField] private float flipHeight = 0.3f; // How high the card lifts
+    [SerializeField] private float flipDuration = 0.5f; // Total animation duration
+    [SerializeField] private AnimationCurve liftCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // Curve for lift/lower motion
+
     private MeshRenderer meshRenderer;
     private GameObject outlineObject;
     private bool isHovered = false;
+    private bool isAnimating = false; // Prevent interactions during animation
 
     private void Awake()
     {
@@ -75,10 +77,7 @@ public class CardVisual : MonoBehaviour
 
     private void OnMouseEnter()
     {
-        // Debug.Log($"Mouse entered on {gameObject.name}");
-
-        // Don't show hover effects while paused or during UI events
-        if (IsAnyUIBlocking())
+        if (IsAnyUIBlocking() || isAnimating)
             return;
 
         if (isAdjacentToPlayer)
@@ -96,7 +95,13 @@ public class CardVisual : MonoBehaviour
 
     private void OnMouseDown()
     {
-        // Don't process clicks if pointer is over UI
+        // Don't process clicks during animation
+        if (isAnimating)
+        {
+            Debug.Log("[CardVisual] Ignoring click - card is animating");
+            return;
+        }
+
         if (UnityEngine.EventSystems.EventSystem.current != null &&
             UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
         {
@@ -104,29 +109,20 @@ public class CardVisual : MonoBehaviour
             return;
         }
 
-        // Don't process clicks if any UI is blocking
         if (IsAnyUIBlocking())
         {
             Debug.Log("[CardVisual] Ignoring click - UI is blocking interaction");
             return;
         }
 
-        // Only process clicks on adjacent cards
         if (!isAdjacentToPlayer || cardLogic == null)
             return;
 
-        // Get this card's position in the grid
         Vector2Int cardPosition = GetGridPosition();
         if (cardPosition.x < 0 || cardPosition.y < 0)
         {
             Debug.LogWarning($"Invalid card position for {gameObject.name}");
             return;
-        }
-
-        // Always turn the card over if it's face-down
-        if (cardLogic.TurnedAround)
-        {
-            TurnCardOver();
         }
 
         // Try to move the player to this card
@@ -145,32 +141,25 @@ public class CardVisual : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Checks if any UI is currently blocking card interactions
-    /// </summary>
     private bool IsAnyUIBlocking()
     {
-        // Check pause menu
         if (PauseMenuManager.IsGamePaused())
         {
             return true;
         }
 
-        // Check event UI
         EventUIManager eventUI = Object.FindFirstObjectByType<EventUIManager>();
         if (eventUI != null && eventUI.IsShowingEvent())
         {
             return true;
         }
 
-        // Check bloodpoint UI
         BloodpointUIManager bloodpointUI = Object.FindFirstObjectByType<BloodpointUIManager>();
         if (bloodpointUI != null && bloodpointUI.IsShowingEvent())
         {
             return true;
         }
 
-        // Check game over/victory UI
         GameOverUIManager gameOverUI = Object.FindFirstObjectByType<GameOverUIManager>();
         if (gameOverUI != null && gameOverUI.IsShowingGameEnd())
         {
@@ -180,10 +169,6 @@ public class CardVisual : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Sets whether this card is adjacent to the player
-    /// Called by BoardManager when player moves
-    /// </summary>
     public void SetAdjacentToPlayer(bool adjacent)
     {
         isAdjacentToPlayer = adjacent;
@@ -191,17 +176,14 @@ public class CardVisual : MonoBehaviour
     }
 
     /// <summary>
-    /// Instantly turns the card over (180 degree rotation)
+    /// Instantly turns the card over (for backwards compatibility or instant reveals)
     /// </summary>
     public void TurnCardOver()
     {
         if (cardLogic == null) return;
-        if (!cardLogic.TurnedAround) return; // Already turned
+        if (!cardLogic.TurnedAround) return;
 
-        // Rotate 180 degrees around X axis
         transform.Rotate(180f, 0f, 0f);
-
-        // Update card logic state
         cardLogic.TurnOver();
 
         UpdateCardAppearance();
@@ -209,28 +191,96 @@ public class CardVisual : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates the card's visual appearance based on its state
+    /// Animated card flip coroutine - lifts, rotates, and lowers the card
+    /// This is now public so BoardManager can call it
     /// </summary>
+    public IEnumerator FlipCardAnimation()
+    {
+        if (cardLogic == null || !cardLogic.TurnedAround)
+        {
+            yield break; // Card is already face-up
+        }
+
+        isAnimating = true;
+
+        Vector3 startPosition = transform.position;
+        Vector3 liftedPosition = startPosition + Vector3.up * flipHeight;
+
+        Quaternion startRotation = transform.rotation;
+        Quaternion endRotation = startRotation * Quaternion.Euler(180f, 0f, 0f);
+
+        float elapsed = 0f;
+
+        // Phase 1: Lift up (first 25% of animation)
+        float liftTime = flipDuration * 0.25f;
+        while (elapsed < liftTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / liftTime;
+            float curveValue = liftCurve.Evaluate(t);
+            
+            transform.position = Vector3.Lerp(startPosition, liftedPosition, curveValue);
+            
+            yield return null;
+        }
+
+        // Phase 2: Rotate (middle 50% of animation)
+        elapsed = 0f;
+        float rotateTime = flipDuration * 0.5f;
+        while (elapsed < rotateTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / rotateTime;
+            
+            transform.rotation = Quaternion.Slerp(startRotation, endRotation, t);
+            
+            yield return null;
+        }
+
+        // Ensure rotation is complete
+        transform.rotation = endRotation;
+
+        // Update card logic state after rotation
+        cardLogic.TurnOver();
+
+        // Phase 3: Lower down (last 25% of animation)
+        elapsed = 0f;
+        float lowerTime = flipDuration * 0.25f;
+        while (elapsed < lowerTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / lowerTime;
+            float curveValue = liftCurve.Evaluate(1f - t); // Reverse curve for lowering
+            
+            transform.position = Vector3.Lerp(startPosition, liftedPosition, curveValue);
+            
+            yield return null;
+        }
+
+        // Ensure final position is exact
+        transform.position = startPosition;
+
+        UpdateCardAppearance();
+        UpdateOutline();
+
+        isAnimating = false;
+    }
+
     private void UpdateCardAppearance()
     {
         UpdateOutline();
     }
 
-    /// <summary>
-    /// Updates the outline visibility and color based on card state and hover status
-    /// </summary>
     private void UpdateOutline()
     {
         if (outlineObject == null || cardLogic == null) return;
 
-        // Don't show outlines while any UI is blocking
-        if (IsAnyUIBlocking())
+        if (IsAnyUIBlocking() || isAnimating)
         {
             outlineObject.SetActive(false);
             return;
         }
 
-        // Only show outline when hovered AND adjacent to player
         if (isHovered && isAdjacentToPlayer)
         {
             outlineObject.SetActive(true);
@@ -246,53 +296,37 @@ public class CardVisual : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Determines the appropriate outline color based on card state
-    /// </summary>
     private Color GetOutlineColor()
     {
         if (cardLogic.TurnedAround)
         {
-            // Card hasn't been turned yet - white outline
             return unturnedOutlineColor;
         }
         else if (cardLogic.CanMoveOnto)
         {
-            // Card is walkable - green outline
             return walkableOutlineColor;
         }
         else
         {
-            // Card is not walkable - red outline
             return unwalkableOutlineColor;
         }
     }
 
-    /// <summary>
-    /// Call this when the player moves onto this card (from game manager or player controller)
-    /// </summary>
     public void OnPlayerEnterCard()
     {
         if (cardLogic != null)
         {
-            // Turn card over if needed
             if (cardLogic.TurnedAround)
             {
                 TurnCardOver();
             }
 
-            // Trigger card logic
             cardLogic.OnPlayerEnter();
         }
     }
 
-    /// <summary>
-    /// Gets this card's position in the grid by parsing its name
-    /// Returns Vector2Int(-1, -1) if position cannot be determined
-    /// </summary>
     private Vector2Int GetGridPosition()
     {
-        // Card names are formatted as "Card_X_Y_TypeName"
         string[] parts = gameObject.name.Split('_');
         if (parts.Length >= 3)
         {
@@ -306,22 +340,15 @@ public class CardVisual : MonoBehaviour
         return new Vector2Int(-1, -1);
     }
 
-    /// <summary>
-    /// Gets the card logic instance
-    /// </summary>
     public Card GetCardLogic()
     {
         return cardLogic;
     }
 
-    /// <summary>
-    /// Sets the card logic instance for this visual representation
-    /// </summary>
     public void SetCardLogic(Card logic)
     {
         cardLogic = logic;
 
-        // If card is already face-up (like StartCard), rotate it immediately
         if (cardLogic != null && !cardLogic.TurnedAround)
         {
             transform.rotation = Quaternion.Euler(270f, 0f, 0f);
@@ -331,7 +358,6 @@ public class CardVisual : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    // Visualize outline colors in the editor
     private void OnDrawGizmosSelected()
     {
         if (cardLogic == null) return;
@@ -341,3 +367,4 @@ public class CardVisual : MonoBehaviour
     }
 #endif
 }
+
