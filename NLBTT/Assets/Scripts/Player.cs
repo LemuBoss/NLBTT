@@ -10,7 +10,6 @@ public class Player : MonoBehaviour
     private WolfAI wolfAI;
     private ItemManager itemManager;
 
-
     public AudioSource audioSource;       
     public AudioClip moveSound;           
     
@@ -78,36 +77,28 @@ public class Player : MonoBehaviour
         }
     }
 
-
     private void Start()
     {
-        // Wait one frame for BoardManager to initialize
         Invoke(nameof(InitializePosition), 0.1f);
     }
     
     private void Update()
     {
-        // Check for resource exchange inputs (only works if using new Input System)
         HandleResourceExchangeInput();
-    
-        // Check for Altar interaction
         HandleAltarInteraction();
+        HandleEventTrigger(); // NEW: Handle spacebar event triggering
     }
-
 
     private void InitializePosition()
     {
-        // Initialize player at the starting position (center bottom)
         if (boardManager != null)
         {
             currentPosition = boardManager.GetPlayerPosition();
             LogDebug($"Player initialized at position ({currentPosition.x}, {currentPosition.y})");
 
-            // Update visual position
             UpdatePlayerChipPosition();
             audioSource.PlayOneShot(moveSound);
 
-            // NOTIFY THE STARTING CARD THAT PLAYER IS ON IT
             Card startCard = boardManager.GetCardAt(currentPosition.x, currentPosition.y);
             if (startCard != null)
             {
@@ -118,9 +109,36 @@ public class Player : MonoBehaviour
     }
 
     /// <summary>
-    /// Attempts to move the player to a new position
-    /// Returns true if movement was successful, false otherwise
+    /// NEW: Handles spacebar press to trigger events on the current card
     /// </summary>
+    private void HandleEventTrigger()
+    {
+        if (boardManager == null)
+            return;
+
+        // Get the card the player is currently standing on
+        Card currentCard = boardManager.GetCardAt(currentPosition.x, currentPosition.y);
+
+        if (currentCard == null || !currentCard.HasActiveEvent)
+            return; // No active event on this card
+
+        // Check for spacebar press using new Input System
+        if (UnityEngine.InputSystem.Keyboard.current != null)
+        {
+            if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                LogDebug($"Triggering event on {currentCard.GetType().Name}");
+                currentCard.TriggerEvent();
+            }
+        }
+        // Fallback to old Input system
+        else if (Input.GetKeyDown(KeyCode.Space))
+        {
+            LogDebug($"Triggering event on {currentCard.GetType().Name}");
+            currentCard.TriggerEvent();
+        }
+    }
+
     public bool TryMoveTo(Vector2Int newPosition)
     {
         if (boardManager == null)
@@ -131,7 +149,6 @@ public class Player : MonoBehaviour
 
         LogDebug($"Attempting to move from ({currentPosition.x}, {currentPosition.y}) to ({newPosition.x}, {newPosition.y})");
 
-        // Check if the new position is valid (within grid bounds)
         Card targetCard = boardManager.GetCardAt(newPosition.x, newPosition.y);
         if (targetCard == null)
         {
@@ -139,65 +156,49 @@ public class Player : MonoBehaviour
             return false;
         }
 
-        // Check if the new position is adjacent to current position
         if (!boardManager.IsCardAdjacent(currentPosition, newPosition))
         {
             LogDebug($"Movement failed: Position ({newPosition.x}, {newPosition.y}) is not adjacent to current position ({currentPosition.x}, {currentPosition.y})");
             return false;
         }
 
-        // Check if the card can be moved onto
         Debug.Log($"[Player] Checking walkability: Card type = {targetCard.GetType().Name}, CanMoveOnto = {targetCard.CanMoveOnto}, TurnedAround = {targetCard.TurnedAround}");
         if (!targetCard.CanMoveOnto)
         {
             LogDebug($"Movement failed: Card at ({newPosition.x}, {newPosition.y}) [{targetCard.GetType().Name}] cannot be moved onto");
-
-            // Even though we can't move, we still trigger the card's OnPlayerEnter for effects
             targetCard.OnPlayerEnter();
             return false;
         }
 
-        // NOTIFY OLD CARD THAT PLAYER IS LEAVING
         Card oldCard = boardManager.GetCardAt(currentPosition.x, currentPosition.y);
         if (oldCard != null)
         {
             oldCard.OnPlayerExit();
         }
 
-        // Movement is valid - update position
         Vector2Int oldPosition = currentPosition;
         currentPosition = newPosition;
 
         LogDebug($"Player moved from ({oldPosition.x}, {oldPosition.y}) to ({currentPosition.x}, {currentPosition.y})");
 
-        // NEW: Mark player scent at new position
         boardManager.SetPlayerScent(currentPosition);
-
-        // Update BoardManager with new player position
         boardManager.SetPlayerPosition(currentPosition);
-
-        // NEW: Reveal the target card and all adjacent cards through BoardManager
         boardManager.RevealCardAndAdjacent(currentPosition);
 
-        // Update visual position of player chip
         UpdatePlayerChipPosition();
         audioSource.PlayOneShot(moveSound);
 
-        // Trigger the card's OnPlayerEnter logic
         targetCard.OnPlayerEnter();
 
-        // Apply hunger cost for successful movement
         modifyHunger(-hungerConsumption);
         LogDebug($"Hunger reduced by 1. Current hunger: {totalHunger}");
 
-        // Check for starvation after movement
         if (isStarving())
         {
             LogDebug("Player is starving!");
             applyStarvation();
         }
 
-        // Check for stamina depletion after movement
         if (isStaminaEmpty())
         {
             LogDebug("Player has run out of stamina!");
@@ -221,16 +222,14 @@ public class Player : MonoBehaviour
             OnPlayerDeath();
         }
 
-        // NEW: Decay scent grid after player movement (before wolves move)
         boardManager.DecayScentGrid();
 
-        // Move wolves and update wolf visibility
         if (wolfAI != null)
         {
             wolfAI.MoveAllWolves();
             wolfAI.UpdateAllWolfVisibility();
         }
-        
+
         if (itemManager != null)
         {
             itemManager.DecrementFlashlightCooldown();
@@ -239,18 +238,11 @@ public class Player : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Gets the player's current grid position
-    /// </summary>
     public Vector2Int GetPosition()
     {
         return currentPosition;
     }
 
-    /// <summary>
-    /// Sets the player's position directly (use carefully, bypasses movement checks)
-    /// Useful for teleportation or initialization
-    /// </summary>
     public void SetPosition(Vector2Int newPosition)
     {
         currentPosition = newPosition;
@@ -261,14 +253,9 @@ public class Player : MonoBehaviour
             boardManager.SetPlayerPosition(currentPosition);
         }
         
-        // Update visual position
         UpdatePlayerChipPosition();
     }
     
-    /// <summary>
-    /// Updates the player chip model's world position based on current grid position
-    /// Teleports the chip to the card's world position with an offset
-    /// </summary>
     private void UpdatePlayerChipPosition()
     {
         Debug.Log($"[Player] UpdatePlayerChipPosition called. PlayerChipInstance null? {playerChipInstance == null}");
@@ -287,7 +274,6 @@ public class Player : MonoBehaviour
         
         Debug.Log($"[Player] Current position: ({currentPosition.x}, {currentPosition.y})");
         
-        // Get the card visual at the current player position
         CardVisual cardVisual = boardManager.GetCardVisualAt(currentPosition.x, currentPosition.y);
         
         if (cardVisual == null)
@@ -296,17 +282,14 @@ public class Player : MonoBehaviour
             return;
         }
         
-        // Get the world position of the card
         Vector3 cardWorldPosition = cardVisual.transform.position;
         
         Debug.Log($"[Player] Card world position: {cardWorldPosition}");
         Debug.Log($"[Player] Chip offset: {chipOffset}");
         
-        // Apply offset and set player chip position
         Vector3 newChipPosition = cardWorldPosition + chipOffset;
         playerChipInstance.transform.position = newChipPosition;
         
-        // Make sure the chip is active
         if (!playerChipInstance.activeSelf)
         {
             Debug.LogWarning("Player chip model was inactive - activating it now");
@@ -317,7 +300,6 @@ public class Player : MonoBehaviour
         LogDebug($"Player chip moved to world position {newChipPosition}");
     }
 
-
     // Resource Management //
 
     public void modifyHunger(int amount)
@@ -325,13 +307,11 @@ public class Player : MonoBehaviour
         totalHunger = Mathf.Clamp(totalHunger + amount, 0, hungerCap);
         LogDebug($"Hunger modified by {amount}. Current hunger: {totalHunger}/{hungerCap}");
 
-        // Notify ItemManager of food gain
         if (amount > 0 && itemManager != null)
         {
             itemManager.OnFoodGained(amount);
         }
     }
-
 
     public void modifyHealth(int amount)
     {
@@ -339,13 +319,11 @@ public class Player : MonoBehaviour
         totalHealth = Mathf.Max(0, totalHealth + amount);
         LogDebug($"Health modified by {amount}. Current health: {totalHealth}");
 
-        // Notify ItemManager of health loss
         if (amount < 0 && itemManager != null)
         {
             itemManager.OnHealthLost(-amount);
         }
 
-        // Check for death
         if (totalHealth <= 0)
         {
             LogDebug("Player has died!");
@@ -365,7 +343,6 @@ public class Player : MonoBehaviour
         totalBloodpoints = Mathf.Max(0, totalBloodpoints + amount);
         LogDebug($"Bloodpoints modified by {amount}. Current bloodpoints: {totalBloodpoints}");
 
-        // Notify ItemManager of bloodpoint gain
         if (amount > 0 && itemManager != null)
         {
             itemManager.OnBloodpointsGained(amount);
@@ -477,15 +454,8 @@ public class Player : MonoBehaviour
         }
     }
     
-    
-    /// <summary>
-    /// Handles keyboard input for exchanging resources into bloodpoints
-    /// Press 1 to exchange Food for Bloodpoints
-    /// Press 2 to exchange Health for Bloodpoints
-    /// </summary>
     private void HandleResourceExchangeInput()
     {
-        // Using new Input System (if you have it installed)
         if (UnityEngine.InputSystem.Keyboard.current != null)
         {
             if (UnityEngine.InputSystem.Keyboard.current.digit2Key.wasPressedThisFrame)
@@ -503,7 +473,6 @@ public class Player : MonoBehaviour
                 ExchangeFoodForHealth();
             }
         }
-        // Fallback to old Input system if new system not available
         else if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             ExchangeFoodForBloodpoints();
@@ -512,29 +481,22 @@ public class Player : MonoBehaviour
         {
             ExchangeHealthForBloodpoints();
         }
-
         else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             ExchangeFoodForHealth();
         }
     }
     
-    /// <summary>
-    /// Handles the Altar interaction
-    /// Press ENTER when standing on an Altar card to deposit all bloodpoints
-    /// </summary>
     private void HandleAltarInteraction()
     {
         if (boardManager == null)
             return;
     
-        // Get the card the player is currently standing on
         Card currentCard = boardManager.GetCardAt(currentPosition.x, currentPosition.y);
     
         if (currentCard == null || !(currentCard is AltarCard))
-            return; // Player is not on an Altar
+            return;
     
-        // Using new Input System
         if (UnityEngine.InputSystem.Keyboard.current != null)
         {
             if (UnityEngine.InputSystem.Keyboard.current.enterKey.wasPressedThisFrame)
@@ -542,16 +504,12 @@ public class Player : MonoBehaviour
                 transferBloodpointsIntoAltar();
             }
         }
-        // Fallback to old Input system
         else if (Input.GetKeyDown(KeyCode.Return))
         {
             transferBloodpointsIntoAltar();
         }
     }
 
-    /// <summary>
-    /// Public wrapper for the private exchange methods (so they can be called from UI buttons later)
-    /// </summary>
     public void ExchangeFoodForBloodpoints()
     {
         exchangeFoodForBloodpoints();
@@ -586,39 +544,27 @@ public class Player : MonoBehaviour
         transferBloodpointsIntoAltar();
     }
     
-    /// <summary>
-    /// Sets the last bloodpoint card visited. Called by bloodpoint cards when triggered.
-    /// </summary>
     public void SetLastBloodPointCardVisited(BloodPointEventCard card)
     {
         lastBloodPointCardVisited = card;
         LogDebug($"Last bloodpoint card visited set to: {card.GetType().Name}");
     }
     
-    /// <summary>
-    /// Gets the last bloodpoint card visited, or null if none have been visited yet
-    /// </summary>
     public BloodPointEventCard GetLastBloodPointCardVisited()
     {
         return lastBloodPointCardVisited;
     }
 
-    /// <summary>
-    /// Called when the player's health reaches 0
-    /// Override or extend this method to handle game over logic
-    /// </summary>
     private void OnPlayerDeath()
     {
         Debug.LogWarning("GAME OVER: Player has died!");
 
-        // Queue the game over screen instead of showing immediately
         if (UIQueueManager.Instance != null)
         {
             UIQueueManager.Instance.QueueGameOver("Du bist gestorben! Deine Gesundheit hat 0 erreicht.");
         }
         else
         {
-            // Fallback if UIQueueManager doesn't exist
             GameOverUIManager gameOverUI = Object.FindFirstObjectByType<GameOverUIManager>();
             if (gameOverUI != null)
             {
@@ -631,29 +577,16 @@ public class Player : MonoBehaviour
         }
     }
 
-    
-
-    /// <summary>
-    /// Gets the altar requirement for winning the game
-    /// </summary>
     public int GetAltarRequirement() => AltarRequirements;
 
-    /// <summary>
-    /// Sets the altar requirement (useful for configuring difficulty)
-    /// </summary>
     public void SetAltarRequirement(int requirement)
     {
         AltarRequirements = requirement;
         LogDebug($"Altar requirement set to: {AltarRequirements}");
     }
 
-
-    /// Resets all player resources to their starting values
-    /// Called when restarting the game
-    /// </summary>
     public void ResetToStartingValues()
     {
-        // Reset resources to starting values
         totalHunger = hungerCap;
         hungerCap = hungerCap;
         totalStamina = 5;
@@ -663,14 +596,11 @@ public class Player : MonoBehaviour
         bloodpointsStoredInAltar = 0;
         bloodpointCardsVisited = 0;
 
-        // Reset penalty flags
         staminaPenaltyApplied = 0;
         starvationApplied = false;
 
-        // Clear last bloodpoint card visited
         lastBloodPointCardVisited = null;
 
-        // Reset inventory
         if (itemManager != null)
         {
             itemManager.ResetInventory();
@@ -679,17 +609,11 @@ public class Player : MonoBehaviour
         LogDebug("Player resources reset to starting values");
     }
 
-    // Add public getter for ItemManager:
     public ItemManager GetItemManager()
     {
         return itemManager;
     }
 
-
-
-    /// <summary>
-    /// Helper method for debug logging
-    /// </summary>
     private void LogDebug(string message)
     {
         if (showDebugLogs)
@@ -698,7 +622,6 @@ public class Player : MonoBehaviour
         }
     }
     
-    // Public getters for UI or other systems
     public int GetHunger() => totalHunger;
     public int GetHungerCap() => hungerCap;
     public int GetStamina() => totalStamina;
@@ -707,6 +630,4 @@ public class Player : MonoBehaviour
     public int GetBloodpoints() => totalBloodpoints;
     public int GetBloodpointCardsVisited() => bloodpointCardsVisited;
     public int GetBloodpointsInAltar() => bloodpointsStoredInAltar;
-    
-    
 }

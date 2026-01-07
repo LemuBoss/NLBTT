@@ -49,7 +49,7 @@ public class BerryCard : ComplexEventCard
     protected override void OnChoiceBSuccess()
     {
         Debug.Log("Berry Card - Choice B Success: Player leaves Berries alone");
-        // Todo: Spieler geht, kein besonderer Effekt
+        // Player leaves berries alone - event stays open so they can try again
     }
 
     protected override void OnChoiceBFailure()
@@ -63,5 +63,25 @@ public class BerryCard : ComplexEventCard
         {
             Debug.LogError("BerryCard: Player reference is null!");
         }
+    }
+
+    /// <summary>
+    /// Choice A (Pflücken) always closes the event, regardless of success or failure
+    /// Once berries are picked, they're gone
+    /// </summary>
+    protected override void HandleChoiceAEventClosure(bool wasSuccess)
+    {
+        CloseEvent(); // Berries have been picked - event is now closed
+        Debug.Log("Berry Card: Berries picked, event closed");
+    }
+
+    /// <summary>
+    /// Choice B (Nicht pflücken) does NOT close the event
+    /// Player can come back and try again later
+    /// </summary>
+    protected override void HandleChoiceBEventClosure(bool wasSuccess)
+    {
+        // Don't close the event - player can return and pick berries later
+        Debug.Log("Berry Card: Player didn't pick berries, event remains open");
     }
 }

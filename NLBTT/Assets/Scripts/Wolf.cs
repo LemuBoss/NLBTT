@@ -93,6 +93,7 @@ public class Wolf : MonoBehaviour
         LogDebug($"Wolf moved to ({currentPosition.x}, {currentPosition.y}), direction: ({direction.x}, {direction.y})");
     }
 
+
     /// <summary>
     /// Checks if the wolf should track scent at current position
     /// Returns true if tracking should begin/continue
@@ -115,8 +116,12 @@ public class Wolf : MonoBehaviour
         {
             if (isTrackingScent)
             {
-                LogDebug($"Scent trail ended at ({currentPosition.x}, {currentPosition.y}). Resuming random behavior.");
+                LogDebug($"🚫 GAVE UP CHASE: Scent too weak at ({currentPosition.x}, {currentPosition.y}). Current scent: {currentScent:F3}, Threshold: {minScentThreshold:F3}. Resuming random behavior.");
                 isTrackingScent = false;
+            }
+            else
+            {
+                LogDebug($"Scent too weak to start tracking at ({currentPosition.x}, {currentPosition.y}). Current: {currentScent:F3}, Need: {minScentThreshold:F3}");
             }
             return false;
         }

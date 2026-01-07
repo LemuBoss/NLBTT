@@ -2,12 +2,11 @@
 
 /// <summary>
 /// Base class for complex event cards with choices and multiple outcomes
-/// Now integrates with EventUIManager to show UI when triggered
+/// Now integrates with EventUIManager to show UI when manually triggered via spacebar
+/// Respects the isEventClosed flag - won't trigger if event is closed
 /// </summary>
 public abstract class ComplexEventCard : Card
 {
-    protected bool hasTriggered = false;
-
     // Event text
     protected string eventTitle;
     protected string eventDescription;
@@ -32,32 +31,63 @@ public abstract class ComplexEventCard : Card
     // Track the last outcome for UI display
     private string lastOutcomeText = "";
 
+    public ComplexEventCard()
+    {
+        // Set hasEvent to true for all ComplexEventCards
+        hasEvent = true;
+    }
+
+    /// <summary>
+    /// MODIFIED: No longer automatically triggers the event
+    /// Just calls base for stamina and wolf encounter checks
+    /// </summary>
     public override void OnPlayerEnter()
     {
         base.OnPlayerEnter();
         
-        if (!hasTriggered)
+        // Find player reference if not already set
+        if (player == null)
         {
-            hasTriggered = true;
-            
-            // Find the EventUIManager in the scene
-            EventUIManager uiManager = Object.FindFirstObjectByType<EventUIManager>();
-            
-            if (uiManager != null)
-            {
-                // Show the event choice UI
-                uiManager.ShowEventChoice(this);
-            }
-            else
-            {
-                Debug.LogError("ComplexEventCard: EventUIManager not found in scene!");
-            }
-            
-            // Find player reference if not already set
-            if (player == null)
-            {
-                player = Object.FindFirstObjectByType<Player>();
-            }
+            player = Object.FindFirstObjectByType<Player>();
+        }
+        
+        // Log that player is on an event card (for debugging)
+        if (hasEvent && !isEventClosed)
+        {
+            Debug.Log($"[{this.GetType().Name}] Player entered event card. Press SPACEBAR to trigger event.");
+        }
+        else if (isEventClosed)
+        {
+            Debug.Log($"[{this.GetType().Name}] Event is closed, no action available");
+        }
+    }
+
+    /// <summary>
+    /// NEW: Manual event trigger via spacebar
+    /// Shows the event UI when player presses spacebar while standing on this card
+    /// </summary>
+    public override void TriggerEvent()
+    {
+        // Don't trigger if event is already closed
+        if (isEventClosed)
+        {
+            Debug.Log($"[{this.GetType().Name}] Event is closed, cannot trigger again");
+            return;
+        }
+        
+        Debug.Log($"[{this.GetType().Name}] Event manually triggered via spacebar");
+        
+        // Find the EventUIManager in the scene
+        EventUIManager uiManager = Object.FindFirstObjectByType<EventUIManager>();
+        
+        if (uiManager != null)
+        {
+            // Show the event choice UI
+            uiManager.ShowEventChoice(this);
+        }
+        else
+        {
+            Debug.LogError("ComplexEventCard: EventUIManager not found in scene!");
         }
     }
 
@@ -79,6 +109,9 @@ public abstract class ComplexEventCard : Card
         {
             OnChoiceAFailure();
         }
+
+        // Let subclasses decide if this choice closes the event
+        HandleChoiceAEventClosure(isSuccess);
     }
 
     // Called by UI when player selects Choice B
@@ -99,6 +132,9 @@ public abstract class ComplexEventCard : Card
         {
             OnChoiceBFailure();
         }
+
+        // Let subclasses decide if this choice closes the event
+        HandleChoiceBEventClosure(isSuccess);
     }
 
     // Getters for UI
@@ -114,6 +150,19 @@ public abstract class ComplexEventCard : Card
     protected abstract void OnChoiceBSuccess();
     protected abstract void OnChoiceBFailure();
 
+    // Override these to control when events close (default: never close automatically)
+    protected virtual void HandleChoiceAEventClosure(bool wasSuccess)
+    {
+        // By default, don't close the event
+        // Subclasses can override to close based on success/failure
+    }
+
+    protected virtual void HandleChoiceBEventClosure(bool wasSuccess)
+    {
+        // By default, don't close the event
+        // Subclasses can override to close based on success/failure
+    }
+
     // Helper method to get outcome text for UI display
     public string GetOutcomeText(bool isChoiceA, bool isSuccess)
     {
@@ -123,3 +172,4 @@ public abstract class ComplexEventCard : Card
             return isSuccess ? outcomeBSuccessText : outcomeBFailureText;
     }
 }
+

@@ -7,6 +7,7 @@ public class CardVisual : MonoBehaviour
 {
     private Card cardLogic;
     private bool isAdjacentToPlayer = false;
+    private bool isPlayerOnCard = false; // NEW: Track if player is standing on this card
     private BoardManager boardManager;
     private Player player;
 
@@ -18,16 +19,17 @@ public class CardVisual : MonoBehaviour
     [SerializeField] private Color unturnedOutlineColor = Color.white;
     [SerializeField] private Color walkableOutlineColor = Color.green;
     [SerializeField] private Color unwalkableOutlineColor = Color.red;
+    [SerializeField] private Color eventOutlineColor = Color.yellow; // NEW: Yellow for active events
 
     [Header("Flip Animation Settings")]
-    [SerializeField] private float flipHeight = 0.3f; // How high the card lifts
-    [SerializeField] private float flipDuration = 0.5f; // Total animation duration
-    [SerializeField] private AnimationCurve liftCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // Curve for lift/lower motion
+    [SerializeField] private float flipHeight = 0.3f;
+    [SerializeField] private float flipDuration = 0.5f;
+    [SerializeField] private AnimationCurve liftCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     private MeshRenderer meshRenderer;
     private GameObject outlineObject;
     private bool isHovered = false;
-    private bool isAnimating = false; // Prevent interactions during animation
+    private bool isAnimating = false;
 
     private void Awake()
     {
@@ -39,6 +41,17 @@ public class CardVisual : MonoBehaviour
 
     void Update()
     {
+        // Update whether player is on this card
+        if (player != null && cardLogic != null)
+        {
+            Vector2Int playerPos = player.GetPosition();
+            Vector2Int cardPos = GetGridPosition();
+            isPlayerOnCard = (playerPos == cardPos);
+        }
+
+        // Update outline based on player position
+        UpdateOutline();
+
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit))
@@ -95,7 +108,6 @@ public class CardVisual : MonoBehaviour
 
     private void OnMouseDown()
     {
-        // Don't process clicks during animation
         if (isAnimating)
         {
             Debug.Log("[CardVisual] Ignoring click - card is animating");
@@ -125,7 +137,6 @@ public class CardVisual : MonoBehaviour
             return;
         }
 
-        // Try to move the player to this card
         if (player != null)
         {
             bool moveSuccessful = player.TryMoveTo(cardPosition);
@@ -175,9 +186,6 @@ public class CardVisual : MonoBehaviour
         UpdateOutline();
     }
 
-    /// <summary>
-    /// Instantly turns the card over (for backwards compatibility or instant reveals)
-    /// </summary>
     public void TurnCardOver()
     {
         if (cardLogic == null) return;
@@ -190,15 +198,11 @@ public class CardVisual : MonoBehaviour
         UpdateOutline();
     }
 
-    /// <summary>
-    /// Animated card flip coroutine - lifts, rotates, and lowers the card
-    /// This is now public so BoardManager can call it
-    /// </summary>
     public IEnumerator FlipCardAnimation()
     {
         if (cardLogic == null || !cardLogic.TurnedAround)
         {
-            yield break; // Card is already face-up
+            yield break;
         }
 
         isAnimating = true;
@@ -211,7 +215,6 @@ public class CardVisual : MonoBehaviour
 
         float elapsed = 0f;
 
-        // Phase 1: Lift up (first 25% of animation)
         float liftTime = flipDuration * 0.25f;
         while (elapsed < liftTime)
         {
@@ -224,7 +227,6 @@ public class CardVisual : MonoBehaviour
             yield return null;
         }
 
-        // Phase 2: Rotate (middle 50% of animation)
         elapsed = 0f;
         float rotateTime = flipDuration * 0.5f;
         while (elapsed < rotateTime)
@@ -237,27 +239,22 @@ public class CardVisual : MonoBehaviour
             yield return null;
         }
 
-        // Ensure rotation is complete
         transform.rotation = endRotation;
-
-        // Update card logic state after rotation
         cardLogic.TurnOver();
 
-        // Phase 3: Lower down (last 25% of animation)
         elapsed = 0f;
         float lowerTime = flipDuration * 0.25f;
         while (elapsed < lowerTime)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / lowerTime;
-            float curveValue = liftCurve.Evaluate(1f - t); // Reverse curve for lowering
+            float curveValue = liftCurve.Evaluate(1f - t);
             
             transform.position = Vector3.Lerp(startPosition, liftedPosition, curveValue);
             
             yield return null;
         }
 
-        // Ensure final position is exact
         transform.position = startPosition;
 
         UpdateCardAppearance();
@@ -281,6 +278,18 @@ public class CardVisual : MonoBehaviour
             return;
         }
 
+        // NEW: Show yellow outline if player is standing on card with active event
+        if (isPlayerOnCard && cardLogic.HasActiveEvent)
+        {
+            outlineObject.SetActive(true);
+            if (outlineObject.GetComponent<MeshRenderer>() != null)
+            {
+                outlineObject.GetComponent<MeshRenderer>().material.color = eventOutlineColor;
+            }
+            return;
+        }
+
+        // Show outline when hovering over adjacent card
         if (isHovered && isAdjacentToPlayer)
         {
             outlineObject.SetActive(true);
