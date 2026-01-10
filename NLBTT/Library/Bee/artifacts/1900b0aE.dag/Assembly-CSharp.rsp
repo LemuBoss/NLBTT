@@ -471,6 +471,7 @@
 "Assets/Scripts/Player.cs"
 "Assets/Scripts/PlayerBackup.cs"
 "Assets/Scripts/UI/BloodpointUIManager.cs"
+"Assets/Scripts/UI/EventIconManager.cs"
 "Assets/Scripts/UI/EventUIManager.cs"
 "Assets/Scripts/UI/gameoverui_manager.cs"
 "Assets/Scripts/UI/PauseMenuManager.cs"

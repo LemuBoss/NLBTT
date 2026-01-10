@@ -1,10 +1,13 @@
 using UnityEngine;
 using System.Collections;
+using System;
 
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(Collider))]
 public class CardVisual : MonoBehaviour
 {
+    public static event Action<CardVisual> OnAnyCardFlipped;
+    
     private Card cardLogic;
     private bool isAdjacentToPlayer = false;
     private bool isPlayerOnCard = false; // NEW: Track if player is standing on this card
@@ -35,8 +38,8 @@ public class CardVisual : MonoBehaviour
     {
         meshRenderer = GetComponent<MeshRenderer>();
         CreateOutlineObject();
-        boardManager = Object.FindFirstObjectByType<BoardManager>();
-        player = Object.FindFirstObjectByType<Player>();
+        boardManager = UnityEngine.Object.FindFirstObjectByType<BoardManager>();
+        player = UnityEngine.Object.FindFirstObjectByType<Player>();
     }
 
     void Update()
@@ -159,19 +162,19 @@ public class CardVisual : MonoBehaviour
             return true;
         }
 
-        EventUIManager eventUI = Object.FindFirstObjectByType<EventUIManager>();
+        EventUIManager eventUI = UnityEngine.Object.FindFirstObjectByType<EventUIManager>();
         if (eventUI != null && eventUI.IsShowingEvent())
         {
             return true;
         }
 
-        BloodpointUIManager bloodpointUI = Object.FindFirstObjectByType<BloodpointUIManager>();
+        BloodpointUIManager bloodpointUI = UnityEngine.Object.FindFirstObjectByType<BloodpointUIManager>();
         if (bloodpointUI != null && bloodpointUI.IsShowingEvent())
         {
             return true;
         }
 
-        GameOverUIManager gameOverUI = Object.FindFirstObjectByType<GameOverUIManager>();
+        GameOverUIManager gameOverUI = UnityEngine.Object.FindFirstObjectByType<GameOverUIManager>();
         if (gameOverUI != null && gameOverUI.IsShowingGameEnd())
         {
             return true;
@@ -259,6 +262,7 @@ public class CardVisual : MonoBehaviour
 
         UpdateCardAppearance();
         UpdateOutline();
+        OnAnyCardFlipped?.Invoke(this);
 
         isAnimating = false;
     }
