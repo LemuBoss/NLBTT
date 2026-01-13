@@ -5,6 +5,7 @@ using TMPro;
 /// <summary>
 /// Manages the UI windows for ComplexEventCard interactions
 /// Displays event choices and outcomes to the player
+/// Now supports minigame integration
 /// </summary>
 public class EventUIManager : MonoBehaviour
 {
@@ -27,6 +28,7 @@ public class EventUIManager : MonoBehaviour
     
     private ComplexEventCard currentEventCard;
     private bool waitingForChoice = false;
+    private bool waitingForMinigame = false;
     
     private void Awake()
     {
@@ -65,6 +67,7 @@ public class EventUIManager : MonoBehaviour
         
         currentEventCard = eventCard;
         waitingForChoice = true;
+        waitingForMinigame = false;
         
         // Populate the choice panel with event information
         if (eventTitleText != null)
@@ -106,13 +109,20 @@ public class EventUIManager : MonoBehaviour
         
         waitingForChoice = false;
         
-        // Call the card's SelectChoiceA - it handles the roll internally
-        currentEventCard.SelectChoiceA();
-        
-        // Get the outcome text and show it
-        // We need to determine what happened to show the right text
-        string outcomeMessage = currentEventCard.GetLastOutcomeText();
-        ShowOutcome(outcomeMessage);
+        // Check if this choice uses a minigame
+        if (currentEventCard.ChoiceAUsesMinigame())
+        {
+            // Minigame will handle showing outcome
+            waitingForMinigame = true;
+            currentEventCard.SelectChoiceA();
+        }
+        else
+        {
+            // No minigame - immediate outcome
+            currentEventCard.SelectChoiceA();
+            string outcomeMessage = currentEventCard.GetLastOutcomeText();
+            ShowOutcome(outcomeMessage);
+        }
     }
     
     /// <summary>
@@ -131,16 +141,25 @@ public class EventUIManager : MonoBehaviour
         
         waitingForChoice = false;
         
-        // Call the card's SelectChoiceB - it handles the roll internally
-        currentEventCard.SelectChoiceB();
-        
-        // Get the outcome text and show it
-        string outcomeMessage = currentEventCard.GetLastOutcomeText();
-        ShowOutcome(outcomeMessage);
+        // Check if this choice uses a minigame
+        if (currentEventCard.ChoiceBUsesMinigame())
+        {
+            // Minigame will handle showing outcome
+            waitingForMinigame = true;
+            currentEventCard.SelectChoiceB();
+        }
+        else
+        {
+            // No minigame - immediate outcome
+            currentEventCard.SelectChoiceB();
+            string outcomeMessage = currentEventCard.GetLastOutcomeText();
+            ShowOutcome(outcomeMessage);
+        }
     }
     
     /// <summary>
     /// Shows the outcome window with the result text
+    /// Called directly for non-minigame choices
     /// </summary>
     private void ShowOutcome(string outcomeMessage)
     {
@@ -151,6 +170,22 @@ public class EventUIManager : MonoBehaviour
             eventOutcomePanel.SetActive(true);
         
         Debug.Log($"[EventUIManager] Showing outcome: {outcomeMessage}");
+    }
+    
+    /// <summary>
+    /// Shows the outcome window after a minigame completes
+    /// Called by ComplexEventCard after minigame success/failure
+    /// </summary>
+    public void ShowOutcomeAfterMinigame(string outcomeMessage)
+    {
+        if (!waitingForMinigame)
+        {
+            Debug.LogWarning("EventUIManager: ShowOutcomeAfterMinigame called but not waiting for minigame!");
+            return;
+        }
+        
+        waitingForMinigame = false;
+        ShowOutcome(outcomeMessage);
     }
     
     /// <summary>
@@ -184,6 +219,7 @@ public class EventUIManager : MonoBehaviour
         
         currentEventCard = null;
         waitingForChoice = false;
+        waitingForMinigame = false;
     }
     
     /// <summary>
@@ -192,7 +228,8 @@ public class EventUIManager : MonoBehaviour
     public bool IsShowingEvent()
     {
         return (eventChoicePanel != null && eventChoicePanel.activeSelf) ||
-               (eventOutcomePanel != null && eventOutcomePanel.activeSelf);
+               (eventOutcomePanel != null && eventOutcomePanel.activeSelf) ||
+               waitingForMinigame;
     }
     
     /// <summary>

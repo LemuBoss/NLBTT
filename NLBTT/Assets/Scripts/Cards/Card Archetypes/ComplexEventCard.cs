@@ -2,7 +2,8 @@
 
 /// <summary>
 /// Base class for complex event cards with choices and multiple outcomes
-/// Now integrates with EventUIManager to show UI when manually triggered via spacebar
+/// Now supports optional minigame integration
+/// Integrates with EventUIManager to show UI when manually triggered via spacebar
 /// Respects the isEventClosed flag - won't trigger if event is closed
 /// </summary>
 public abstract class ComplexEventCard : Card
@@ -21,9 +22,13 @@ public abstract class ComplexEventCard : Card
     protected string outcomeBSuccessText;
     protected string outcomeBFailureText;
     
-    // Probabilities (0.0 to 1.0)
+    // Probabilities (0.0 to 1.0) - only used if no minigame is configured
     protected float choiceASuccessProbability = 0.5f;
     protected float choiceBSuccessProbability = 0.5f;
+    
+    // Minigame configuration (null = use random roll)
+    protected MinigameConfig choiceAMinigameConfig = null;
+    protected MinigameConfig choiceBMinigameConfig = null;
     
     // Reference to player for applying effects
     protected Player player;
@@ -91,12 +96,123 @@ public abstract class ComplexEventCard : Card
         }
     }
 
-    // Called by UI when player selects Choice A
+    /// <summary>
+    /// Called by UI when player selects Choice A
+    /// Determines if minigame or random roll should be used
+    /// </summary>
     public void SelectChoiceA()
     {
-        float roll = Random.value;
-        bool isSuccess = roll <= choiceASuccessProbability;
+        if (choiceAMinigameConfig != null)
+        {
+            // Use minigame to determine outcome
+            StartMinigameForChoice(true);
+        }
+        else
+        {
+            // Use random roll to determine outcome
+            float roll = Random.value;
+            bool isSuccess = roll <= choiceASuccessProbability;
+            
+            ExecuteChoiceAOutcome(isSuccess);
+        }
+    }
+
+    /// <summary>
+    /// Called by UI when player selects Choice B
+    /// Determines if minigame or random roll should be used
+    /// </summary>
+    public void SelectChoiceB()
+    {
+        if (choiceBMinigameConfig != null)
+        {
+            // Use minigame to determine outcome
+            StartMinigameForChoice(false);
+        }
+        else
+        {
+            // Use random roll to determine outcome
+            float roll = Random.value;
+            bool isSuccess = roll <= choiceBSuccessProbability;
+            
+            ExecuteChoiceBOutcome(isSuccess);
+        }
+    }
+
+    /// <summary>
+    /// Starts the minigame for the selected choice
+    /// </summary>
+    private void StartMinigameForChoice(bool isChoiceA)
+    {
+        MinigameController minigameController = Object.FindFirstObjectByType<MinigameController>();
         
+        if (minigameController == null)
+        {
+            Debug.LogError("ComplexEventCard: MinigameController not found! Falling back to random roll.");
+            
+            // Fallback to random roll
+            if (isChoiceA)
+            {
+                float roll = Random.value;
+                ExecuteChoiceAOutcome(roll <= choiceASuccessProbability);
+            }
+            else
+            {
+                float roll = Random.value;
+                ExecuteChoiceBOutcome(roll <= choiceBSuccessProbability);
+            }
+            return;
+        }
+        
+        // Get modifiers from player state
+        MinigameModifiers modifiers = MinigameModifiers.FromPlayerState(player);
+        
+        // Get the appropriate config
+        MinigameConfig config = isChoiceA ? choiceAMinigameConfig : choiceBMinigameConfig;
+        
+        // Start minigame with callbacks
+        minigameController.StartMinigame(
+            config,
+            modifiers,
+            () => {
+                // Success callback
+                if (isChoiceA)
+                    ExecuteChoiceAOutcome(true);
+                else
+                    ExecuteChoiceBOutcome(true);
+                
+                // Show outcome after minigame completes
+                ShowOutcomeAfterMinigame();
+            },
+            () => {
+                // Failure callback
+                if (isChoiceA)
+                    ExecuteChoiceAOutcome(false);
+                else
+                    ExecuteChoiceBOutcome(false);
+                
+                // Show outcome after minigame completes
+                ShowOutcomeAfterMinigame();
+            }
+        );
+    }
+
+    /// <summary>
+    /// Shows the outcome panel after minigame completes
+    /// </summary>
+    private void ShowOutcomeAfterMinigame()
+    {
+        EventUIManager uiManager = Object.FindFirstObjectByType<EventUIManager>();
+        if (uiManager != null)
+        {
+            uiManager.ShowOutcomeAfterMinigame(lastOutcomeText);
+        }
+    }
+
+    /// <summary>
+    /// Executes Choice A outcome and stores outcome text
+    /// </summary>
+    private void ExecuteChoiceAOutcome(bool isSuccess)
+    {
         // Store the outcome text for UI
         lastOutcomeText = isSuccess ? outcomeASuccessText : outcomeAFailureText;
         
@@ -114,12 +230,11 @@ public abstract class ComplexEventCard : Card
         HandleChoiceAEventClosure(isSuccess);
     }
 
-    // Called by UI when player selects Choice B
-    public void SelectChoiceB()
+    /// <summary>
+    /// Executes Choice B outcome and stores outcome text
+    /// </summary>
+    private void ExecuteChoiceBOutcome(bool isSuccess)
     {
-        float roll = Random.value;
-        bool isSuccess = roll <= choiceBSuccessProbability;
-        
         // Store the outcome text for UI
         lastOutcomeText = isSuccess ? outcomeBSuccessText : outcomeBFailureText;
         
@@ -143,6 +258,10 @@ public abstract class ComplexEventCard : Card
     public string GetChoiceAText() => choiceAText;
     public string GetChoiceBText() => choiceBText;
     public string GetLastOutcomeText() => lastOutcomeText;
+    
+    // Check if choices use minigames
+    public bool ChoiceAUsesMinigame() => choiceAMinigameConfig != null;
+    public bool ChoiceBUsesMinigame() => choiceBMinigameConfig != null;
 
     // Override these in specific card implementations
     protected abstract void OnChoiceASuccess();
@@ -172,4 +291,3 @@ public abstract class ComplexEventCard : Card
             return isSuccess ? outcomeBSuccessText : outcomeBFailureText;
     }
 }
-

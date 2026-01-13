@@ -1,5 +1,10 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Berry picking event with minigame integration
+/// Choice A (Pflücken) uses a minigame instead of random roll
+/// Choice B (Nicht pflücken) remains random (100% success)
+/// </summary>
 public class BerryCard : ComplexEventCard
 {
     public BerryCard()
@@ -8,20 +13,29 @@ public class BerryCard : ComplexEventCard
         eventTitle = "Beerenbusch";
         eventDescription = "Du stößt auf einen Beerenbusch. Seine Beeren glänzen verlockend im wenigen Licht, das durch das Blätterdach fällt. Doch sie sehen ziemlich ähnlich zu giftigen Beeren aus...";
         
+        // CHOICE A: Pick berries (uses minigame)
         choiceAText = "Pflücken";
-        choiceASuccessProbability = 0.7f; 
-        outcomeASuccessText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst und verspeist die Beeren ohne dich zu vergiften. (+15 Nahrung)";
-        outcomeAFailureText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst und verspeist die Beeren, leidest aber anschließend unter starkem Erbrechen. (-1 Gesundheit, -5 Nahrung)";
+        choiceASuccessProbability = 0.7f; // Fallback if minigame not available
+        outcomeASuccessText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst sorgfältig die richtigen Beeren und verspeist sie ohne dich zu vergiften. (+15 Nahrung)";
+        outcomeAFailureText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst hastig und erwischst auch giftige Beeren, leidest anschließend unter starkem Erbrechen. (-1 Gesundheit, -5 Nahrung)";
         
+        // Load minigame config for Choice A
+        choiceAMinigameConfig = Resources.Load<MinigameConfig>("MinigameConfigs/MinigameConfig_BerryPicking");
+        if (choiceAMinigameConfig == null)
+        {
+            Debug.LogWarning("BerryCard: Could not load MinigameConfig_BerryPicking, will use random roll instead");
+        }
+        
+        // CHOICE B: Don't pick (no minigame, always succeeds)
         choiceBText = "Nicht pflücken";
-        choiceBSuccessProbability = 1f; // ja, 100% Erfolgschance 
+        choiceBSuccessProbability = 1f; // 100% success chance 
         outcomeBSuccessText = "Du entscheidest dich dazu, auf deine Vernunft zu hören und die Beeren nicht zu pflücken. Vielleicht findest du unterwegs eine alternative Nahrungsquelle... Vielleicht.";
         outcomeBFailureText = "Du entscheidest dich dazu, auf deine Vernunft zu hören und die Beeren nicht zu pflücken, doch dein Hunger dreht mit dir durch. Du isst die Beeren und merkst, dass sie nicht von der giftigen Variante waren. (+10 Nahrung)";
     }
 
     protected override void OnChoiceASuccess()
     {
-        Debug.Log("Berry Card - Choice A Success: Berries picked, Berries were not poisonous, +15 food");
+        Debug.Log("Berry Card - Choice A Success: Berries picked carefully, +15 food");
         if (player != null)
         {
             player.modifyHunger(15);
@@ -34,7 +48,7 @@ public class BerryCard : ComplexEventCard
 
     protected override void OnChoiceAFailure()
     {
-        Debug.Log("Berry Card - Choice A Failure: Berries picked but poisonous, -1 health, -5 food");
+        Debug.Log("Berry Card - Choice A Failure: Picked wrong berries, -1 health, -5 food");
         if (player != null)
         {
             player.modifyHunger(-5);
@@ -54,7 +68,7 @@ public class BerryCard : ComplexEventCard
 
     protected override void OnChoiceBFailure()
     {
-        Debug.Log("Berry Card - Choice B Failure: This should literally not trigger at all.");
+        Debug.Log("Berry Card - Choice B Failure: Player gives in to hunger");
         if (player != null)
         {
             player.modifyHunger(10);
