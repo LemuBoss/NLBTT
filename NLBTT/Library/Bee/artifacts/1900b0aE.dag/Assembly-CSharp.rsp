@@ -488,7 +488,7 @@
 "Assets/Scripts/UI/MinigameModifiers.cs"
 "Assets/Scripts/UI/MinigameUIManager.cs"
 "Assets/Scripts/UI/PauseMenuManager.cs"
-"Assets/Scripts/UI/RessourceCircleDisplays.cs"
+"Assets/Scripts/UI/ResourceBarDisplay.cs"
 "Assets/Scripts/UI/TraderUIManager.cs"
 "Assets/Scripts/UI/UIManager.cs"
 "Assets/Scripts/UI/UIQueueManager.cs"

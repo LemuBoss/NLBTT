@@ -11,7 +11,7 @@ public class MenuManager2 : MonoBehaviour
 {
     [Header("Main Menu")]
     [SerializeField] private GameObject mainMenuRoot;
-    [SerializeField] private CanvasGroup mainMenuCanvasGroup; // Für Fade-Effekt der Buttons
+    [SerializeField] private CanvasGroup mainMenuCanvasGroup; // Fï¿½r Fade-Effekt der Buttons
     [SerializeField] private Button startButton;
     [SerializeField] private Button rulesButton;
     [SerializeField] private Button creditsButton;
@@ -60,25 +60,25 @@ public class MenuManager2 : MonoBehaviour
     [SerializeField] private string rulesContent = @"SPIELREGELN
 
 <size=18>Steuerung:</size>
-• Klicke auf benachbarte Karten um dich zu bewegen
-• [1] - Hunger in Blutpunkte umwandeln
-• [2] - Gesundheit in Blutpunkte umwandeln
-• [ENTER] - Blutpunkte am Altar deponieren
-• [ESC] - Spiel pausieren/fortsetzen
+ï¿½ Klicke auf benachbarte Karten um dich zu bewegen
+ï¿½ [1] - Hunger in Blutpunkte umwandeln
+ï¿½ [2] - Gesundheit in Blutpunkte umwandeln
+ï¿½ [ENTER] - Blutpunkte am Altar deponieren
+ï¿½ [ESC] - Spiel pausieren/fortsetzen
 
 <size=18>Spielziel:</size>
-Sammle Blutpunkte und überlebe die Reise durch den Wald.
+Sammle Blutpunkte und ï¿½berlebe die Reise durch den Wald.
 
 <size=18>Ressourcen:</size>
-• Terrain zieht dir Ausdauer ab
-• Bewegungen kosten Nahrung
-• Spezielle Karten verleihen dir Blutpunkte
-• Verwalte deine Ressourcen weise!
+ï¿½ Terrain zieht dir Ausdauer ab
+ï¿½ Bewegungen kosten Nahrung
+ï¿½ Spezielle Karten verleihen dir Blutpunkte
+ï¿½ Verwalte deine Ressourcen weise!
 
 <size=18>Tipps:</size>
-• Plane deine Route sorgfältig
-• Achte auf deine Ressourcen
-• Nutze Blutpunkte strategisch";
+ï¿½ Plane deine Route sorgfï¿½ltig
+ï¿½ Achte auf deine Ressourcen
+ï¿½ Nutze Blutpunkte strategisch";
 
     [Header("Credits Text")]
     [TextArea(10, 20)]
@@ -102,8 +102,9 @@ Dein Name
 <size=18>Besonderer Dank an:</size>
 Unity Community
 TextMeshPro Team
+Claude.ai
 
-<size=14>© 2025 - Alle Rechte vorbehalten</size>";
+<size=14>ï¿½ 2025 - Alle Rechte vorbehalten</size>";
 
     private bool isAnimating = false;
     private MenuState currentState = MenuState.Main;

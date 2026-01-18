@@ -9,7 +9,7 @@ public class UIManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private Player player;
     [SerializeField] private BoardManager boardManager;
-    [SerializeField] private ResourceCircleDisplay resourceDisplay;
+    [SerializeField] private ResourceBarDisplay resourceDisplay; // Changed from ResourceCircleDisplay
     
     [Header("HUD Root")]
     [SerializeField] private GameObject resourceHUDRoot;
@@ -21,8 +21,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI altarPromptText;
     [SerializeField] private TextMeshProUGUI bloodpointsInAltarText;
     
-    private bool wasGamePausedLastFrame = false;
-    
     private void Start()
     {
         // Auto-find components
@@ -31,7 +29,7 @@ public class UIManager : MonoBehaviour
         if (boardManager == null)
             boardManager = Object.FindFirstObjectByType<BoardManager>();
         if (resourceDisplay == null)
-            resourceDisplay = GetComponent<ResourceCircleDisplay>();
+            resourceDisplay = GetComponent<ResourceBarDisplay>(); // Changed from ResourceCircleDisplay
         
         // Validate references
         if (player == null)
@@ -39,7 +37,11 @@ public class UIManager : MonoBehaviour
         if (boardManager == null)
             Debug.LogError("UIManager: BoardManager not found!");
         if (resourceDisplay == null)
-            Debug.LogError("UIManager: ResourceCircleDisplay not found! Add component to UIManager.");
+            Debug.LogError("UIManager: ResourceBarDisplay not found! Add component to UIManager."); // Changed error message
+        
+        // Validate HUD Root
+        if (resourceHUDRoot == null)
+            Debug.LogError("UIManager: ResourceHUDRoot not assigned! Please assign the HUD root GameObject in the Inspector.");
         
         // Hide altar prompt initially
         if (altarPromptText != null)
@@ -60,26 +62,18 @@ public class UIManager : MonoBehaviour
     {
         bool isGamePaused = PauseMenuManager.IsGamePaused();
         
-        // Detect unpause
-        if (wasGamePausedLastFrame && !isGamePaused)
-        {
-            ShowHUD();
-            Debug.Log("[UIManager] Game unpaused - showing HUD");
-        }
-        
-        // Hide HUD when paused
+        // Handle HUD visibility based on pause state
         if (isGamePaused)
         {
             HideHUD();
         }
         else
         {
+            // Only show HUD when unpaused
             ShowHUD();
             UpdateResourceDisplay();
             UpdateAltarDisplay();
         }
-        
-        wasGamePausedLastFrame = isGamePaused;
     }
     
     /// <summary>
@@ -90,13 +84,13 @@ public class UIManager : MonoBehaviour
         if (player == null || resourceDisplay == null)
             return;
         
-        // Update visual circle displays
+        // Update visual bar displays
         resourceDisplay.UpdateHealth(player.GetHealth());
         resourceDisplay.UpdateHunger(player.GetHunger(), player.GetHungerCap());
         
         // Update bloodpoints text
         if (bloodpointsText != null)
-            bloodpointsText.text = $"BLUTPUNKTE: {player.GetBloodpoints()}";
+            bloodpointsText.text = $"{player.GetBloodpoints()}";
     }
     
     /// <summary>
@@ -135,9 +129,17 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void HideHUD()
     {
-        if (resourceHUDRoot != null && resourceHUDRoot.activeSelf)
+        if (resourceHUDRoot != null)
         {
-            resourceHUDRoot.SetActive(false);
+            if (resourceHUDRoot.activeSelf)
+            {
+                resourceHUDRoot.SetActive(false);
+                Debug.Log("[UIManager] HUD hidden");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[UIManager] Cannot hide HUD - resourceHUDRoot is null!");
         }
     }
     
@@ -146,9 +148,17 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void ShowHUD()
     {
-        if (resourceHUDRoot != null && !resourceHUDRoot.activeSelf)
+        if (resourceHUDRoot != null)
         {
-            resourceHUDRoot.SetActive(true);
+            if (!resourceHUDRoot.activeSelf)
+            {
+                resourceHUDRoot.SetActive(true);
+                Debug.Log("[UIManager] HUD shown");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[UIManager] Cannot show HUD - resourceHUDRoot is null!");
         }
     }
     
@@ -169,5 +179,4 @@ public class UIManager : MonoBehaviour
         }
     }
 }
-
 

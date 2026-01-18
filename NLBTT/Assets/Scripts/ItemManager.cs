@@ -633,14 +633,26 @@ public class ItemManager : MonoBehaviour
         }
     }
 
+    
     /// <summary>
     /// Resets item states when game/round restarts
     /// Call this from Player.ResetToStartingValues() or similar
     /// </summary>
     public void ResetItemStates()
     {
+        // Remove all passive effects before clearing inventory
+        foreach (ItemType item in new List<ItemType>(inventory))
+        {
+            RemovePassiveItemEffect(item);
+        }
+    
+        // Clear the entire inventory
+        inventory.Clear();
+    
+        // Reset obsidian shard state
         obsidianShardUsed = false;
-        Debug.Log("[ItemManager] Item states reset - Obsidian Shard back to INTACT");
+    
+        Debug.Log("[ItemManager] Item states reset - Inventory cleared, Obsidian Shard back to INTACT");
     }
 
     #endregion

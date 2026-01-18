@@ -5,6 +5,7 @@
 /// Now supports optional minigame integration
 /// Integrates with EventUIManager to show UI when manually triggered via spacebar
 /// Respects the isEventClosed flag - won't trigger if event is closed
+/// FIX: Sets lastOutcomeText AFTER callbacks to allow dynamic text updates
 /// </summary>
 public abstract class ComplexEventCard : Card
 {
@@ -166,11 +167,14 @@ public abstract class ComplexEventCard : Card
     {
         Debug.Log($"{GetType().Name} - Choice C selected: {choiceCText}");
     
-        lastOutcomeText = outcomeCText;
+        // Execute the outcome first
         OnChoiceC();
+        
+        // THEN set the outcome text (allows dynamic updates in OnChoiceC)
+        lastOutcomeText = outcomeCText;
     
-        // Statt "eventCompleted = true" verwende:
-        CloseEvent(); // Diese Methode setzt isEventClosed = true
+        // Close the event
+        CloseEvent();
     }
 
     /// <summary>
@@ -254,13 +258,11 @@ public abstract class ComplexEventCard : Card
 
     /// <summary>
     /// Executes Choice A outcome and stores outcome text
+    /// FIX: Now sets lastOutcomeText AFTER callback to allow dynamic updates
     /// </summary>
     private void ExecuteChoiceAOutcome(bool isSuccess)
     {
-        // Store the outcome text for UI
-        lastOutcomeText = isSuccess ? outcomeASuccessText : outcomeAFailureText;
-        
-        // Execute the appropriate outcome
+        // Execute the appropriate outcome FIRST
         if (isSuccess)
         {
             OnChoiceASuccess();
@@ -269,6 +271,9 @@ public abstract class ComplexEventCard : Card
         {
             OnChoiceAFailure();
         }
+        
+        // THEN store the outcome text for UI (allows subclasses to modify it)
+        lastOutcomeText = isSuccess ? outcomeASuccessText : outcomeAFailureText;
 
         // Let subclasses decide if this choice closes the event
         HandleChoiceAEventClosure(isSuccess);
@@ -276,13 +281,11 @@ public abstract class ComplexEventCard : Card
 
     /// <summary>
     /// Executes Choice B outcome and stores outcome text
+    /// FIX: Now sets lastOutcomeText AFTER callback to allow dynamic updates
     /// </summary>
     private void ExecuteChoiceBOutcome(bool isSuccess)
     {
-        // Store the outcome text for UI
-        lastOutcomeText = isSuccess ? outcomeBSuccessText : outcomeBFailureText;
-        
-        // Execute the appropriate outcome
+        // Execute the appropriate outcome FIRST
         if (isSuccess)
         {
             OnChoiceBSuccess();
@@ -291,6 +294,9 @@ public abstract class ComplexEventCard : Card
         {
             OnChoiceBFailure();
         }
+        
+        // THEN store the outcome text for UI (allows subclasses to modify it)
+        lastOutcomeText = isSuccess ? outcomeBSuccessText : outcomeBFailureText;
 
         // Let subclasses decide if this choice closes the event
         HandleChoiceBEventClosure(isSuccess);
@@ -337,3 +343,4 @@ public abstract class ComplexEventCard : Card
             return isSuccess ? outcomeBSuccessText : outcomeBFailureText;
     }
 }
+

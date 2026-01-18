@@ -245,6 +245,8 @@ public class ItemTooltipUI : MonoBehaviour
             case ItemManager.ItemType.BearClaw: return "Bärenkralle";
             case ItemManager.ItemType.EmergencyRations: return "Notrationen";
             case ItemManager.ItemType.ObsidianShard: return "Obsidianscherbe";
+            case ItemManager.ItemType.BunnyStatue: return "Hasenstatue";
+            case ItemManager.ItemType.ClimbingRope: return "Kletterseil";
             default: return itemType.ToString();
         }
     }
@@ -254,7 +256,7 @@ public class ItemTooltipUI : MonoBehaviour
         switch (itemType)
         {
             case ItemManager.ItemType.Flashlight:
-                return "Alle Wölfe sind ständig sichtbar, auch auf verdeckten Karten.";
+                return "Alle Wölfe sind stänig sichtbar, auch auf verdeckten Karten.";
             
             case ItemManager.ItemType.HuntingKnife:
                 return "Alle Minigames werden erleichtert (Timer laufen 30% langsamer).";
@@ -335,4 +337,5 @@ public class ItemTooltipUI : MonoBehaviour
 
     #endregion
 }
+
 

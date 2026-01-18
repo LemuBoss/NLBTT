@@ -597,6 +597,17 @@ public class BoardManager : MonoBehaviour
         {
             foliageDecorator.SpawnFoliage();
         }
+        
+        EventIconManager eventIconManager = FindObjectOfType<EventIconManager>();
+        if (eventIconManager != null)
+        {
+            eventIconManager.OnBoardRegenerated();
+            Debug.Log("[BoardManager] Event icons refreshed");
+        }
+        else
+        {
+            Debug.LogWarning("[BoardManager] EventIconManager not found - event icons won't be refreshed");
+        }
 
         Debug.Log("Board regenerated");
     }

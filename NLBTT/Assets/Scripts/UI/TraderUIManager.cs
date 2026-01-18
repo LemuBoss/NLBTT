@@ -260,7 +260,7 @@ public class TraderUIManager : MonoBehaviour
                 return "Wölfe sind immer sichtbar.";
             
             case ItemManager.ItemType.HuntingKnife:
-                return "Alle Minigames werden erleichtert (Timer läuft 30% langsamer).";
+                return "Alle Minigames werden erleichtert.";
             
             case ItemManager.ItemType.JarOfNeedles:
                 return "BP-Gewinn: +1 BP pro Waldkarte in derselben Reihe.\nZerstörung: -1 BP pro Waldkarte in derselben Reihe.";
@@ -269,19 +269,19 @@ public class TraderUIManager : MonoBehaviour
                 return "BP-Gewinn: +1 BP pro Sumpfkarte in derselben Spalte.\nZerstörung: -1 BP pro Sumpfkarte in derselben Spalte.";
             
             case ItemManager.ItemType.OldBread:
-                return "Selbstheilung deaktiviert (keine 5 Nahrung → 1 HP).\nGewinn: +5 BP pro verlorenem HP.";
+                return "Selbstheilung deaktiviert (keine 5 Nahrung → 1 HP).\n+5 BP pro verlorenem Lebenspunkt.";
             
             case ItemManager.ItemType.PileOfAshes:
                 return "BP-Gewinn verdoppelt (×2).\nBei HP-Verlust: Verliere ALLE BP.";
             
             case ItemManager.ItemType.BearClaw:
-                return "Wenn ein Item zerstört wird: 70% Chance auf 10 BP, 30% Chance auf -1 HP.\nZerstörung: Gleicher Effekt (70% → 10 BP, 30% → -1 HP).";
+                return "Wenn ein Item zerstört wird: 70% Chance auf 10 BP, 30% Chance auf -1 HP, auch bei Zerstörung dieses Items.";
             
             case ItemManager.ItemType.EmergencyRations:
-                return "Nahrungskapazität +10.\nZerstörung: +10 Nahrung (Kapazität wird vorher reduziert).";
+                return "Nahrungskapazität +10.\nZerstörung: +10 Nahrung.";
             
             case ItemManager.ItemType.ObsidianShard:
-                return "Bei Tod: Volle Gesundheit wiederherstellen.\nDanach: Alle BP-Gewinne halbiert (aufgerundet) für den Rest der Runde.";
+                return "Bei Tod: Volle Gesundheit wiederherstellen.\nDanach: Alle BP-Gewinne werden für den Rest der Runde halbiert.";
             
             case ItemManager.ItemType.BunnyStatue:
                 return "Kann als Nahrung verzehrt werden.\nZerstörung: +10 Nahrung.";
