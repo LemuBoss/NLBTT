@@ -529,6 +529,22 @@ public class BoardManager : MonoBehaviour
         }
     }
     
+    public void ResetAllTraders()
+    {
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int y = 0; y < gridHeight; y++)
+            {
+                Card card = GetCardAt(x, y);
+                if (card != null && card is TraderCard traderCard)
+                {
+                    traderCard.ResetTrader();
+                }
+            }
+        }
+        Debug.Log("[BoardManager] All traders reset");
+    }
+    
     private void ClearBoard()
     {
         foreach (Transform child in transform)
@@ -546,6 +562,7 @@ public class BoardManager : MonoBehaviour
     
     public void RegenerateBoard()
     {
+        ResetAllTraders();
         ClearBoard();
 
         Vector2Int startPos = new Vector2Int(gridWidth / 2, 0);

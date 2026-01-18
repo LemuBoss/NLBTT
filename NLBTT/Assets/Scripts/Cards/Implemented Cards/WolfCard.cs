@@ -4,10 +4,13 @@
 /// Wolf encounter event with minigame integration
 /// Both choices use minigames
 /// Fighting has a harder minigame than fleeing
+/// NEW: Winning the fight despawns the wolf for 10 turns
 /// NEW: If player has Bunny Statue, third option to sacrifice it for safe escape
 /// </summary>
 public class WolfCard : ComplexEventCard
 {
+    private Wolf wolfOnThisCard; // The wolf currently on this card (set by OnWolfEnter)
+
     public WolfCard()
     {
         // Event details
@@ -16,11 +19,10 @@ public class WolfCard : ComplexEventCard
         
         // CHOICE A: Fight (uses hard minigame)
         choiceAText = "Kämpfen";
-        choiceASuccessProbability = 0.3f; // Fallback if minigame not available
-        outcomeASuccessText = "Du stellst dich dem Wolf und kämpfst mit allem, was du hast. Deine Reflexe sind scharf, deine Bewegungen präzise. Du kehrst siegreich hervor. (+5 Blutpunkte)";
+        choiceASuccessProbability = 0.3f;
+        outcomeASuccessText = "Du stellst dich dem Wolf und kämpfst mit allem, was du hast. Deine Reflexe sind scharf, deine Bewegungen präzise. Du kehrst siegreich hervor. Der Wolf flieht verwundet in die Schatten. (+5 Blutpunkte)";
         outcomeAFailureText = "Du stellst dich dem Wolf, doch deine Reflexe sind zu langsam. Du überschätzt deine eigene Kraft und kommst nur knapp mit deinem Leben davon. (-2 Gesundheit)";
         
-        // Load minigame config for Choice A (harder)
         choiceAMinigameConfig = Resources.Load<MinigameConfig>("MinigameConfigs/MinigameConfig_WolfFight");
         if (choiceAMinigameConfig == null)
         {
@@ -29,24 +31,44 @@ public class WolfCard : ComplexEventCard
         
         // CHOICE B: Flee (uses easier minigame)
         choiceBText = "Fliehen";
-        choiceBSuccessProbability = 0.75f; // Fallback if minigame not available
+        choiceBSuccessProbability = 0.75f;
         outcomeBSuccessText = "Du nimmst die Flucht auf und navigierst geschickt durch das Unterholz. Der Wolf verliert deine Spur.";
         outcomeBFailureText = "Du nimmst die Flucht auf, stolperst aber über eine Wurzel, die aus dem Boden ragt. Der Wolf schnappt nach deinen Beinen, reißt an deiner Kleidung, doch du kannst gerade noch so wieder Fuß fassen. (-1 Gesundheit)";
         
-        // Load minigame config for Choice B (easier)
         choiceBMinigameConfig = Resources.Load<MinigameConfig>("MinigameConfigs/MinigameConfig_WolfFlee");
         if (choiceBMinigameConfig == null)
         {
             Debug.LogWarning("WolfCard: Could not load MinigameConfig_WolfFlee, will use random roll instead");
         }
         
-        // NEW: CHOICE C - Bunny Statue (if player has it)
         CheckForBunnyStatue();
     }
 
     /// <summary>
-    /// Checks if player has Bunny Statue and adds third choice if available
+    /// Called by Wolf.cs when a wolf enters this card
+    /// Stores reference to the wolf for later use
     /// </summary>
+    public override void OnWolfEnter(Wolf wolf)
+    {
+        base.OnWolfEnter(wolf);
+        wolfOnThisCard = wolf;
+        Debug.Log($"[WolfCard] Wolf entered card, stored reference");
+    }
+
+    /// <summary>
+    /// Called by Wolf.cs when a wolf leaves this card
+    /// Clears the wolf reference
+    /// </summary>
+    public override void OnWolfExit(Wolf wolf)
+    {
+        base.OnWolfExit(wolf);
+        if (wolfOnThisCard == wolf)
+        {
+            wolfOnThisCard = null;
+            Debug.Log($"[WolfCard] Wolf left card, cleared reference");
+        }
+    }
+
     private void CheckForBunnyStatue()
     {
         Player player = Object.FindFirstObjectByType<Player>();
@@ -65,7 +87,7 @@ public class WolfCard : ComplexEventCard
 
     protected override void OnChoiceASuccess()
     {
-        Debug.Log("Wolf Card - Choice A Success: Wolf fought off, bloodpoints gained");
+        Debug.Log("Wolf Card - Choice A Success: Wolf defeated, bloodpoints gained");
         
         if (player != null)
         {
@@ -78,6 +100,18 @@ public class WolfCard : ComplexEventCard
         else
         {
             Debug.LogError("WolfCard: Player reference is null!");
+        }
+        
+        // NEW: Despawn the wolf after successful fight
+        if (wolfOnThisCard != null)
+        {
+            wolfOnThisCard.Despawn();
+            Debug.Log($"[WolfCard] 🐺💀 Wolf defeated and despawned! Will respawn in 10 turns.");
+            wolfOnThisCard = null; // Clear reference since wolf is despawned
+        }
+        else
+        {
+            Debug.LogWarning("[WolfCard] ⚠ No wolf on this card to despawn!");
         }
     }
 
@@ -97,6 +131,8 @@ public class WolfCard : ComplexEventCard
         {
             Debug.LogError("WolfCard: Player reference is null!");
         }
+        
+        // Wolf stays active after failed fight
     }
 
     protected override void OnChoiceBSuccess()
@@ -104,6 +140,7 @@ public class WolfCard : ComplexEventCard
         Debug.Log("Wolf Card - Choice B Success: Successful Escape");
         
         // No special effect - player successfully escapes without consequence
+        // Wolf remains active
     }
 
     protected override void OnChoiceBFailure()
@@ -122,12 +159,10 @@ public class WolfCard : ComplexEventCard
         {
             Debug.LogError("WolfCard: Player reference is null!");
         }
+        
+        // Wolf remains active after failed flee
     }
 
-    /// <summary>
-    /// NEW: Called when player sacrifices Bunny Statue
-    /// Player escapes safely without minigame, but loses the item
-    /// </summary>
     protected override void OnChoiceC()
     {
         Debug.Log("Wolf Card - Choice C: Bunny Statue sacrificed for safe escape");
@@ -137,7 +172,6 @@ public class WolfCard : ComplexEventCard
             ItemManager itemManager = player.GetItemManager();
             if (itemManager != null)
             {
-                // Destroy Bunny Statue - player escapes without any damage or minigame
                 itemManager.DestroyItem(ItemManager.ItemType.BunnyStatue);
                 Debug.Log("[WolfCard] Bunny Statue destroyed - player escapes safely");
             }
@@ -146,6 +180,8 @@ public class WolfCard : ComplexEventCard
         {
             Debug.LogError("WolfCard: Player reference is null!");
         }
+        
+        // Wolf remains active after bunny statue sacrifice
     }
 }
 

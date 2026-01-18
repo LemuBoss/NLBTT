@@ -4,6 +4,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Manages all wolves on the board
 /// Handles wolf spawning, movement coordination, and AI pathfinding
+/// NEW: Manages despawned wolves and their respawn timers
 /// </summary>
 public class WolfAI : MonoBehaviour
 {
@@ -19,13 +20,12 @@ public class WolfAI : MonoBehaviour
     private List<Wolf> wolves = new List<Wolf>();
     private BoardManager boardManager;
     
-    // Direction vectors for movement (up, down, left, right)
     private static readonly Vector2Int[] directions = new Vector2Int[]
     {
-        new Vector2Int(0, 1),  // Up
-        new Vector2Int(0, -1), // Down
-        new Vector2Int(-1, 0), // Left
-        new Vector2Int(1, 0)   // Right
+        new Vector2Int(0, 1),
+        new Vector2Int(0, -1),
+        new Vector2Int(-1, 0),
+        new Vector2Int(1, 0)
     };
 
     private void Awake()
@@ -38,10 +38,6 @@ public class WolfAI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Spawns wolves at all WolfdenCards on the board
-    /// Should be called after board generation
-    /// </summary>
     public void SpawnWolves()
     {
         if (boardManager == null)
@@ -50,16 +46,13 @@ public class WolfAI : MonoBehaviour
             return;
         }
 
-        // Clear existing wolves
         ClearWolves();
 
-        // Get grid dimensions from BoardManager
         int gridWidth = boardManager.GetGridWidth();
         int gridHeight = boardManager.GetGridHeight();
         
         LogDebug($"Searching for WolfdenCards in {gridWidth}x{gridHeight} grid...");
         
-        // Find all WolfdenCards and spawn wolves
         int wolfdenCount = 0;
         for (int x = 0; x < gridWidth; x++)
         {
@@ -78,13 +71,9 @@ public class WolfAI : MonoBehaviour
 
         LogDebug($"Found {wolfdenCount} WolfdenCards, spawned {wolves.Count} wolves on the board");
         
-        // Update wolf visibility after spawning
         UpdateAllWolfVisibility();
     }
 
-    /// <summary>
-    /// Spawns a single wolf at a wolfden position
-    /// </summary>
     private void SpawnWolfAt(Vector2Int position, WolfdenCard den)
     {
         if (wolfPrefab == null)
@@ -93,17 +82,14 @@ public class WolfAI : MonoBehaviour
             return;
         }
 
-        // Create wolf GameObject
         GameObject wolfObj = new GameObject($"Wolf_{position.x}_{position.y}");
         wolfObj.transform.parent = transform;
         
         Wolf wolf = wolfObj.AddComponent<Wolf>();
         wolf.Initialize(position, wolfPrefab);
         
-        // Add to wolves list
         wolves.Add(wolf);
         
-        // Link wolf to den
         den.AssignWolf(wolf);
         
         LogDebug($"Wolf spawned at ({position.x}, {position.y})");
@@ -111,9 +97,7 @@ public class WolfAI : MonoBehaviour
 
     /// <summary>
     /// Moves all wolves after the player has made a move
-    /// Wolves either follow scent trails or move randomly
-    /// Movement follows hierarchy order to prevent conflicts
-    /// Wolves on cooldown skip their turn
+    /// Also handles despawned wolves' respawn timers
     /// </summary>
     public void MoveAllWolves()
     {
@@ -123,15 +107,43 @@ public class WolfAI : MonoBehaviour
             return;
         }
 
-        LogDebug($"Moving {wolves.Count} wolves...");
+        LogDebug($"Processing {wolves.Count} wolves...");
+
+        // First, handle respawn timers for despawned wolves
+        List<Wolf> wolvesToRespawn = new List<Wolf>();
+        foreach (Wolf wolf in wolves)
+        {
+            if (wolf.IsDespawned())
+            {
+                if (wolf.DecrementRespawnTimer())
+                {
+                    wolvesToRespawn.Add(wolf);
+                }
+            }
+        }
+        
+        // Respawn wolves that are ready
+        foreach (Wolf wolf in wolvesToRespawn)
+        {
+            wolf.Respawn();
+            LogDebug($"Wolf respawned at ({wolf.GetPosition().x}, {wolf.GetPosition().y})");
+        }
 
         // Track which positions have been claimed this turn
         HashSet<Vector2Int> claimedPositions = new HashSet<Vector2Int>();
 
-        // Move each wolf in order (hierarchy)
+        // Move each active (non-despawned) wolf
         for (int i = 0; i < wolves.Count; i++)
         {
             Wolf wolf = wolves[i];
+            
+            // Skip despawned wolves
+            if (wolf.IsDespawned())
+            {
+                LogDebug($"Wolf {i} is despawned - skipping movement");
+                continue;
+            }
+            
             Vector2Int currentPos = wolf.GetPosition();
             
             LogDebug($"--- Processing Wolf {i} at ({currentPos.x}, {currentPos.y}) ---");
@@ -140,18 +152,16 @@ public class WolfAI : MonoBehaviour
             if (wolf.IsOnCooldown())
             {
                 LogDebug($"Wolf {i} is on cooldown - skipping turn");
-                wolf.DeactivateCooldown(); // Clear cooldown for next turn
+                wolf.DeactivateCooldown();
                 continue;
             }
 
-            // Check if wolf should track scent
             bool shouldTrack = wolf.ShouldTrackScent();
             
             Vector2Int? chosenPosition = null;
 
             if (shouldTrack)
             {
-                // Try to follow scent trail
                 LogDebug($"Wolf {i} is tracking scent");
                 chosenPosition = wolf.GetScentTrackingTarget(claimedPositions);
                 
@@ -162,11 +172,9 @@ public class WolfAI : MonoBehaviour
                 else
                 {
                     LogDebug($"Wolf {i} scent tracking failed (trail ended or blocked). Falling back to random movement.");
-                    // Fall through to random movement
                 }
             }
 
-            // If not tracking or tracking failed, use random movement
             if (!chosenPosition.HasValue)
             {
                 LogDebug($"Wolf {i} using random movement");
@@ -178,18 +186,15 @@ public class WolfAI : MonoBehaviour
                     continue;
                 }
 
-                // Choose random position with anti-backtracking
                 chosenPosition = ChooseRandomMovementPosition(wolf, eligiblePositions);
                 LogDebug($"Wolf {i} chose random position ({chosenPosition.Value.x}, {chosenPosition.Value.y})");
             }
 
-            // Claim this position and move the wolf
             claimedPositions.Add(chosenPosition.Value);
             wolf.SetPosition(chosenPosition.Value);
             
             LogDebug($"Wolf {i} moved to ({chosenPosition.Value.x}, {chosenPosition.Value.y})");
 
-            // Check if wolf caught the player
             if (wolf.IsAtPlayerPosition())
             {
                 wolf.OnCatchPlayer();
@@ -197,11 +202,6 @@ public class WolfAI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gets all eligible positions a wolf can move to (for random movement)
-    /// Excludes: out of bounds, null cards, unwalkable cards, already claimed positions
-    /// Includes: player's current position
-    /// </summary>
     private List<Vector2Int> GetEligibleMovementPositions(Wolf wolf, HashSet<Vector2Int> claimedPositions)
     {
         List<Vector2Int> eligible = new List<Vector2Int>();
@@ -211,16 +211,13 @@ public class WolfAI : MonoBehaviour
         {
             Vector2Int targetPos = currentPos + dir;
 
-            // Check if already claimed by another wolf this turn
             if (claimedPositions.Contains(targetPos))
                 continue;
 
-            // Check if position is valid and has a card
             Card targetCard = boardManager.GetCardAt(targetPos.x, targetPos.y);
             if (targetCard == null)
-                continue; // Out of bounds or empty cell
+                continue;
 
-            // Check if card is walkable
             if (!targetCard.CanMoveOnto)
                 continue;
 
@@ -230,10 +227,6 @@ public class WolfAI : MonoBehaviour
         return eligible;
     }
 
-    /// <summary>
-    /// Chooses a random movement position from eligible options
-    /// Applies anti-backtracking logic (previous direction has lower probability)
-    /// </summary>
     private Vector2Int ChooseRandomMovementPosition(Wolf wolf, List<Vector2Int> eligiblePositions)
     {
         if (eligiblePositions.Count == 1)
@@ -241,24 +234,20 @@ public class WolfAI : MonoBehaviour
 
         Vector2Int currentPos = wolf.GetPosition();
         Vector2Int lastDirection = wolf.GetLastDirection();
-        Vector2Int backtrackPosition = currentPos - lastDirection; // Position we came from
+        Vector2Int backtrackPosition = currentPos - lastDirection;
 
-        // Build weighted list
         List<Vector2Int> weightedOptions = new List<Vector2Int>();
 
         foreach (Vector2Int pos in eligiblePositions)
         {
-            // Check if this is the backtrack position
             bool isBacktrack = (pos == backtrackPosition && lastDirection != Vector2Int.zero);
 
             if (isBacktrack)
             {
-                // Add with reduced probability
                 weightedOptions.Add(pos);
             }
             else
             {
-                // Add multiple times to increase weight
                 for (int i = 0; i < 6; i++)
                 {
                     weightedOptions.Add(pos);
@@ -266,16 +255,10 @@ public class WolfAI : MonoBehaviour
             }
         }
 
-        // Choose randomly from weighted list
         int randomIndex = Random.Range(0, weightedOptions.Count);
         return weightedOptions[randomIndex];
     }
 
-    /// <summary>
-    /// Updates visibility for all wolves based on whether their card is revealed
-    /// Wolves on unrevealed cards are hidden, wolves on revealed cards are shown
-    /// OVERRIDE: Flashlight item makes all wolves visible regardless of card state
-    /// </summary>
     public void UpdateAllWolfVisibility()
     {
         if (boardManager == null)
@@ -284,7 +267,6 @@ public class WolfAI : MonoBehaviour
             return;
         }
 
-        // Check if player has flashlight
         Player player = Object.FindFirstObjectByType<Player>();
         bool flashlightActive = false;
     
@@ -299,32 +281,39 @@ public class WolfAI : MonoBehaviour
 
         if (flashlightActive)
         {
-            // Flashlight makes ALL wolves visible
             foreach (Wolf wolf in wolves)
             {
                 if (wolf == null) continue;
-                wolf.SetVisible(true);
+                // Despawned wolves stay invisible even with flashlight
+                if (!wolf.IsDespawned())
+                {
+                    wolf.SetVisible(true);
+                }
             }
-            LogDebug("Flashlight active: All wolves are visible");
+            LogDebug("Flashlight active: All active wolves are visible");
         }
         else
         {
-            // Normal visibility rules
             foreach (Wolf wolf in wolves)
             {
                 if (wolf == null) continue;
+                
+                // Despawned wolves are never visible
+                if (wolf.IsDespawned())
+                {
+                    wolf.SetVisible(false);
+                    continue;
+                }
 
                 Vector2Int wolfPos = wolf.GetPosition();
                 Card card = boardManager.GetCardAt(wolfPos.x, wolfPos.y);
 
                 if (card == null)
                 {
-                    // No card at position (shouldn't happen) - hide wolf
                     wolf.SetVisible(false);
                     continue;
                 }
 
-                // Wolf is visible only if the card is revealed (not turned around)
                 bool isCardRevealed = !card.TurnedAround;
                 wolf.SetVisible(isCardRevealed);
 
@@ -333,9 +322,6 @@ public class WolfAI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gets the scent value at a specific position from BoardManager
-    /// </summary>
     public float GetScentAt(Vector2Int position)
     {
         if (boardManager != null)
@@ -345,9 +331,6 @@ public class WolfAI : MonoBehaviour
         return 0f;
     }
 
-    /// <summary>
-    /// Gets the entire scent grid from BoardManager
-    /// </summary>
     public float[,] GetScentGrid()
     {
         if (boardManager != null)
@@ -357,9 +340,6 @@ public class WolfAI : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Clears all wolves (used when regenerating board)
-    /// </summary>
     public void ClearWolves()
     {
         foreach (Wolf wolf in wolves)
@@ -373,12 +353,41 @@ public class WolfAI : MonoBehaviour
         LogDebug("All wolves cleared");
     }
 
-    /// <summary>
-    /// Gets all wolves currently active
-    /// </summary>
     public List<Wolf> GetWolves()
     {
         return wolves;
+    }
+    
+    /// <summary>
+    /// NEW: Gets all currently active (non-despawned) wolves
+    /// </summary>
+    public List<Wolf> GetActiveWolves()
+    {
+        List<Wolf> activeWolves = new List<Wolf>();
+        foreach (Wolf wolf in wolves)
+        {
+            if (wolf != null && !wolf.IsDespawned())
+            {
+                activeWolves.Add(wolf);
+            }
+        }
+        return activeWolves;
+    }
+    
+    /// <summary>
+    /// NEW: Gets all currently despawned wolves
+    /// </summary>
+    public List<Wolf> GetDespawnedWolves()
+    {
+        List<Wolf> despawnedWolves = new List<Wolf>();
+        foreach (Wolf wolf in wolves)
+        {
+            if (wolf != null && wolf.IsDespawned())
+            {
+                despawnedWolves.Add(wolf);
+            }
+        }
+        return despawnedWolves;
     }
 
     private void LogDebug(string message)
@@ -389,3 +398,4 @@ public class WolfAI : MonoBehaviour
         }
     }
 }
+

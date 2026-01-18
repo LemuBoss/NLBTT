@@ -113,20 +113,20 @@ public class CardVisual : MonoBehaviour
     {
         if (isAnimating)
         {
-            Debug.Log("[CardVisual] Ignoring click - card is animating");
+            //Debug.Log("[CardVisual] Ignoring click - card is animating");
             return;
         }
 
         if (UnityEngine.EventSystems.EventSystem.current != null &&
             UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
         {
-            Debug.Log("[CardVisual] Ignoring click - pointer is over UI element");
+            //Debug.Log("[CardVisual] Ignoring click - pointer is over UI element");
             return;
         }
 
         if (IsAnyUIBlocking())
         {
-            Debug.Log("[CardVisual] Ignoring click - UI is blocking interaction");
+            //Debug.Log("[CardVisual] Ignoring click - UI is blocking interaction");
             return;
         }
 
@@ -136,7 +136,7 @@ public class CardVisual : MonoBehaviour
         Vector2Int cardPosition = GetGridPosition();
         if (cardPosition.x < 0 || cardPosition.y < 0)
         {
-            Debug.LogWarning($"Invalid card position for {gameObject.name}");
+            //Debug.LogWarning($"Invalid card position for {gameObject.name}");
             return;
         }
 
@@ -146,7 +146,7 @@ public class CardVisual : MonoBehaviour
 
             if (!moveSuccessful)
             {
-                Debug.Log($"[CardVisual] Player attempted to move to ({cardPosition.x}, {cardPosition.y}) but movement was blocked");
+                //Debug.Log($"[CardVisual] Player attempted to move to ({cardPosition.x}, {cardPosition.y}) but movement was blocked");
             }
         }
         else

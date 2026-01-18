@@ -4,27 +4,36 @@ using System.Collections.Generic;
 /// <summary>
 /// Represents a wolf entity on the board
 /// Similar to Player, has a position and visual figurine
+/// NEW: Supports despawning and respawning after being defeated
 /// </summary>
 public class Wolf : MonoBehaviour
 {
     private Vector2Int currentPosition;
-    private Vector2Int lastDirection; // Direction the wolf came from (to avoid backtracking)
+    private Vector2Int lastDirection;
     private GameObject wolfModelInstance;
     private BoardManager boardManager;
-    private bool isVisible = true; // Whether the wolf model should be shown
+    private bool isVisible = true;
     
     // Scent tracking state
     private bool isTrackingScent = false;
-    private Dictionary<Vector2Int, float> scentMemory = new Dictionary<Vector2Int, float>(); // Stores scent values of visited positions
+    private Dictionary<Vector2Int, float> scentMemory = new Dictionary<Vector2Int, float>();
     
     // Encounter cooldown
-    private bool isOnCooldown = false; // Wolf waits one turn after encounter
+    private bool isOnCooldown = false;
+    
+    // NEW: Despawn/Respawn system
+    private bool isDespawned = false;
+    private int turnsUntilRespawn = 0;
+    private Vector2Int spawnPosition; // Original spawn position (den location)
 
     [Header("Wolf Model")]
-    [SerializeField] private Vector3 chipOffset = new Vector3(0, 0.02f, 0); // Slightly higher than player to distinguish
+    [SerializeField] private Vector3 chipOffset = new Vector3(0, 0.02f, 0);
 
     [Header("Scent Tracking")]
-    [SerializeField] private float minScentThreshold = 0.15f; // Minimum scent to start tracking
+    [SerializeField] private float minScentThreshold = 0.15f;
+    
+    [Header("Respawn Settings")]
+    [SerializeField] private int respawnTurns = 10; // Turns until respawn after defeat
 
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = true;
@@ -45,7 +54,8 @@ public class Wolf : MonoBehaviour
     public void Initialize(Vector2Int startPosition, GameObject modelPrefab)
     {
         currentPosition = startPosition;
-        lastDirection = Vector2Int.zero; // No previous direction yet
+        spawnPosition = startPosition; // Remember original spawn position
+        lastDirection = Vector2Int.zero;
 
         // Instantiate the wolf model
         if (modelPrefab != null)
@@ -55,7 +65,6 @@ public class Wolf : MonoBehaviour
             UpdateVisualPosition();
             LogDebug($"Wolf initialized at position ({currentPosition.x}, {currentPosition.y})");
 
-            // Notify the card that a wolf is on it
             NotifyCardOfPresence(startPosition);
         }
         else
@@ -70,6 +79,14 @@ public class Wolf : MonoBehaviour
     public Vector2Int GetPosition()
     {
         return currentPosition;
+    }
+    
+    /// <summary>
+    /// Gets the wolf's original spawn position (den location)
+    /// </summary>
+    public Vector2Int GetSpawnPosition()
+    {
+        return spawnPosition;
     }
 
     /// <summary>
@@ -93,17 +110,16 @@ public class Wolf : MonoBehaviour
         LogDebug($"Wolf moved to ({currentPosition.x}, {currentPosition.y}), direction: ({direction.x}, {direction.y})");
     }
 
-
     /// <summary>
     /// Checks if the wolf should track scent at current position
     /// Returns true if tracking should begin/continue
     /// </summary>
     public bool ShouldTrackScent()
     {
-        // Don't track if on cooldown
-        if (isOnCooldown)
+        // Don't track if on cooldown or despawned
+        if (isOnCooldown || isDespawned)
         {
-            LogDebug("Wolf is on cooldown, skipping scent check");
+            LogDebug("Wolf is on cooldown or despawned, skipping scent check");
             return false;
         }
         
@@ -111,7 +127,6 @@ public class Wolf : MonoBehaviour
 
         float currentScent = boardManager.GetScentAt(currentPosition);
         
-        // Check if scent is strong enough to track
         if (currentScent < minScentThreshold)
         {
             if (isTrackingScent)
@@ -126,12 +141,10 @@ public class Wolf : MonoBehaviour
             return false;
         }
 
-        // Check if we've been here before
         if (scentMemory.ContainsKey(currentPosition))
         {
             float rememberedScent = scentMemory[currentPosition];
             
-            // If scent has decreased or stayed the same, it's old scent - ignore it
             if (currentScent <= rememberedScent)
             {
                 LogDebug($"Scent at ({currentPosition.x}, {currentPosition.y}) is old (current: {currentScent:F2}, remembered: {rememberedScent:F2}). Ignoring.");
@@ -144,7 +157,6 @@ public class Wolf : MonoBehaviour
             }
         }
 
-        // Update memory with current scent
         scentMemory[currentPosition] = currentScent;
         isTrackingScent = true;
         
@@ -161,38 +173,33 @@ public class Wolf : MonoBehaviour
 
         float currentScent = boardManager.GetScentAt(currentPosition);
         Vector2Int? bestPosition = null;
-        float bestScent = currentScent; // Must be higher than current position
+        float bestScent = currentScent;
 
-        // Check all four adjacent directions
         Vector2Int[] adjacentOffsets = new Vector2Int[]
         {
-            new Vector2Int(0, 1),   // Up
-            new Vector2Int(0, -1),  // Down
-            new Vector2Int(-1, 0),  // Left
-            new Vector2Int(1, 0)    // Right
+            new Vector2Int(0, 1),
+            new Vector2Int(0, -1),
+            new Vector2Int(-1, 0),
+            new Vector2Int(1, 0)
         };
 
         foreach (Vector2Int offset in adjacentOffsets)
         {
             Vector2Int adjacentPos = currentPosition + offset;
 
-            // Check if position is claimed by another wolf this turn
             if (claimedPositions.Contains(adjacentPos))
             {
                 LogDebug($"Position ({adjacentPos.x}, {adjacentPos.y}) is claimed by another wolf. Stopping scent tracking.");
                 isTrackingScent = false;
-                return null; // Stop tracking if desired position is blocked
+                return null;
             }
 
-            // Check if position is valid and has a card
             Card targetCard = boardManager.GetCardAt(adjacentPos.x, adjacentPos.y);
             if (targetCard == null || !targetCard.CanMoveOnto)
                 continue;
 
-            // Get scent at this position
             float adjacentScent = boardManager.GetScentAt(adjacentPos);
 
-            // Check if this scent is stronger than current position and best so far
             if (adjacentScent > bestScent)
             {
                 bestScent = adjacentScent;
@@ -203,7 +210,6 @@ public class Wolf : MonoBehaviour
         if (bestPosition.HasValue)
         {
             LogDebug($"Found stronger scent at ({bestPosition.Value.x}, {bestPosition.Value.y}) with value {bestScent:F2}");
-            // Update memory for the new position
             scentMemory[bestPosition.Value] = bestScent;
         }
         else
@@ -215,17 +221,11 @@ public class Wolf : MonoBehaviour
         return bestPosition;
     }
 
-    /// <summary>
-    /// Gets whether the wolf is currently tracking scent
-    /// </summary>
     public bool IsTrackingScent()
     {
         return isTrackingScent;
     }
 
-    /// <summary>
-    /// Clears the wolf's scent memory (useful for board regeneration)
-    /// </summary>
     public void ClearScentMemory()
     {
         scentMemory.Clear();
@@ -233,42 +233,139 @@ public class Wolf : MonoBehaviour
         LogDebug("Scent memory cleared");
     }
     
-    /// <summary>
-    /// Activates cooldown - wolf will skip its next turn
-    /// Called after encountering the player
-    /// </summary>
     public void ActivateCooldown()
     {
         isOnCooldown = true;
-        isTrackingScent = false; // Stop tracking during cooldown
+        isTrackingScent = false;
         LogDebug("Cooldown activated - wolf will wait one turn");
     }
     
-    /// <summary>
-    /// Deactivates cooldown - called by WolfAI after the cooldown turn
-    /// </summary>
     public void DeactivateCooldown()
     {
         isOnCooldown = false;
         LogDebug("Cooldown deactivated - wolf can move again");
     }
     
-    /// <summary>
-    /// Checks if wolf is on cooldown
-    /// </summary>
     public bool IsOnCooldown()
     {
         return isOnCooldown;
     }
-
+    
+    // NEW: Despawn/Respawn methods
+    
     /// <summary>
-    /// Sets whether the wolf model should be visible
-    /// Called by WolfAI based on whether the card is revealed
-    /// OVERRIDE: Flashlight item makes wolves always visible
+    /// Despawns the wolf after being defeated in combat
+    /// Wolf will respawn at its den after the specified number of turns
     /// </summary>
+    public void Despawn()
+    {
+        if (isDespawned)
+        {
+            LogDebug("Wolf is already despawned!");
+            return;
+        }
+        
+        isDespawned = true;
+        turnsUntilRespawn = respawnTurns;
+        isTrackingScent = false;
+        isOnCooldown = false;
+        
+        // Notify current card that wolf is leaving
+        NotifyCardOfDeparture(currentPosition);
+        
+        // Hide the wolf model
+        if (wolfModelInstance != null)
+        {
+            wolfModelInstance.SetActive(false);
+        }
+        
+        LogDebug($"🪦 Wolf despawned! Will respawn in {turnsUntilRespawn} turns at den ({spawnPosition.x}, {spawnPosition.y})");
+    }
+    
+    /// <summary>
+    /// Decrements the respawn timer by one turn
+    /// Should be called each turn by WolfAI
+    /// Returns true if wolf should respawn this turn
+    /// </summary>
+    public bool DecrementRespawnTimer()
+    {
+        if (!isDespawned)
+            return false;
+        
+        turnsUntilRespawn--;
+        LogDebug($"Respawn timer: {turnsUntilRespawn} turns remaining");
+        
+        if (turnsUntilRespawn <= 0)
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Respawns the wolf at its original den position
+    /// </summary>
+    public void Respawn()
+    {
+        if (!isDespawned)
+        {
+            LogDebug("Wolf is not despawned, cannot respawn!");
+            return;
+        }
+        
+        isDespawned = false;
+        turnsUntilRespawn = 0;
+        
+        // Reset wolf state
+        ClearScentMemory();
+        lastDirection = Vector2Int.zero;
+        
+        // Move wolf back to spawn position
+        currentPosition = spawnPosition;
+        
+        // Show the wolf model
+        if (wolfModelInstance != null)
+        {
+            wolfModelInstance.SetActive(true);
+            UpdateVisualPosition();
+        }
+        
+        // Notify den card that wolf is back
+        NotifyCardOfPresence(spawnPosition);
+        
+        LogDebug($"🐺 Wolf respawned at den ({spawnPosition.x}, {spawnPosition.y})!");
+    }
+    
+    /// <summary>
+    /// Checks if the wolf is currently despawned
+    /// </summary>
+    public bool IsDespawned()
+    {
+        return isDespawned;
+    }
+    
+    /// <summary>
+    /// Gets the number of turns until respawn (0 if not despawned)
+    /// </summary>
+    public int GetTurnsUntilRespawn()
+    {
+        return isDespawned ? turnsUntilRespawn : 0;
+    }
+
     public void SetVisible(bool visible)
     {
-        // Check if player has flashlight
+        // Don't show despawned wolves
+        if (isDespawned)
+        {
+            isVisible = false;
+            if (wolfModelInstance != null)
+            {
+                wolfModelInstance.SetActive(false);
+            }
+            return;
+        }
+        
         Player player = Object.FindFirstObjectByType<Player>();
         bool forceVisible = false;
     
@@ -281,7 +378,6 @@ public class Wolf : MonoBehaviour
             }
         }
     
-        // Override visibility if flashlight is active
         isVisible = forceVisible || visible;
     
         if (wolfModelInstance != null)
@@ -299,17 +395,11 @@ public class Wolf : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gets whether the wolf is currently visible
-    /// </summary>
     public bool IsVisible()
     {
         return isVisible;
     }
 
-    /// <summary>
-    /// Notifies the card at the given position that this wolf is now on it
-    /// </summary>
     private void NotifyCardOfPresence(Vector2Int position)
     {
         if (boardManager == null) return;
@@ -322,9 +412,6 @@ public class Wolf : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Notifies the card at the given position that this wolf is leaving
-    /// </summary>
     private void NotifyCardOfDeparture(Vector2Int position)
     {
         if (boardManager == null) return;
@@ -337,17 +424,11 @@ public class Wolf : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gets the last direction the wolf moved (for anti-backtracking)
-    /// </summary>
     public Vector2Int GetLastDirection()
     {
         return lastDirection;
     }
 
-    /// <summary>
-    /// Updates the wolf model's visual position based on current grid position
-    /// </summary>
     private void UpdateVisualPosition()
     {
         if (wolfModelInstance == null)
@@ -362,7 +443,6 @@ public class Wolf : MonoBehaviour
             return;
         }
 
-        // Get the card visual at the current wolf position
         CardVisual cardVisual = boardManager.GetCardVisualAt(currentPosition.x, currentPosition.y);
 
         if (cardVisual == null)
@@ -371,20 +451,15 @@ public class Wolf : MonoBehaviour
             return;
         }
 
-        // Get the world position of the card and apply offset
         Vector3 cardWorldPosition = cardVisual.transform.position;
         Vector3 newPosition = cardWorldPosition + chipOffset;
         wolfModelInstance.transform.position = newPosition;
 
-        // Apply visibility setting
-        wolfModelInstance.SetActive(isVisible);
+        wolfModelInstance.SetActive(isVisible && !isDespawned);
 
-        LogDebug($"Wolf visual updated to world position {newPosition}, visible: {isVisible}");
+        LogDebug($"Wolf visual updated to world position {newPosition}, visible: {isVisible}, despawned: {isDespawned}");
     }
 
-    /// <summary>
-    /// Checks if the wolf is at the same position as the player
-    /// </summary>
     public bool IsAtPlayerPosition()
     {
         Player player = Object.FindFirstObjectByType<Player>();
@@ -395,24 +470,18 @@ public class Wolf : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Called when wolf catches the player
-    /// Activates cooldown so wolf waits one turn before moving again
-    /// Note: The actual encounter is triggered by the Card system
-    /// </summary>
     public void OnCatchPlayer()
     {
+        // Don't trigger if despawned
+        if (isDespawned)
+            return;
+            
         Debug.Log($"[Wolf] Wolf at ({currentPosition.x}, {currentPosition.y}) caught the player!");
         ActivateCooldown();
-        // The actual encounter is triggered by the Card system now
     }
 
-    /// <summary>
-    /// Cleanup when wolf is destroyed
-    /// </summary>
     private void OnDestroy()
     {
-        // Notify current card that wolf is leaving
         NotifyCardOfDeparture(currentPosition);
 
         if (wolfModelInstance != null)
@@ -429,3 +498,4 @@ public class Wolf : MonoBehaviour
         }
     }
 }
+

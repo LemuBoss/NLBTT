@@ -30,7 +30,6 @@ public class Player : MonoBehaviour
     [SerializeField] private int totalHealth = 5;
     [SerializeField] private int totalBloodpoints = 0;
     
-    // NEW: Can heal self flag (controlled by items like Old Bread)
     private bool canHealSelf = true;
     
     [Header("Altar Requirements")] 
@@ -91,7 +90,7 @@ public class Player : MonoBehaviour
         if (boardManager != null)
         {
             currentPosition = boardManager.GetPlayerPosition();
-            LogDebug($"Player initialized at position ({currentPosition.x}, {currentPosition.y})");
+            //LogDebug($"Player initialized at position ({currentPosition.x}, {currentPosition.y})");
 
             UpdatePlayerChipPosition();
             audioSource.PlayOneShot(moveSound);
@@ -100,7 +99,7 @@ public class Player : MonoBehaviour
             if (startCard != null)
             {
                 startCard.OnPlayerEnter();
-                LogDebug($"Notified starting card of player presence");
+                //LogDebug($"Notified starting card of player presence");
             }
         }
     }
@@ -119,13 +118,13 @@ public class Player : MonoBehaviour
         {
             if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
             {
-                LogDebug($"Triggering event on {currentCard.GetType().Name}");
+                //LogDebug($"Triggering event on {currentCard.GetType().Name}");
                 currentCard.TriggerEvent();
             }
         }
         else if (Input.GetKeyDown(KeyCode.Space))
         {
-            LogDebug($"Triggering event on {currentCard.GetType().Name}");
+            //LogDebug($"Triggering event on {currentCard.GetType().Name}");
             currentCard.TriggerEvent();
         }
     }
@@ -138,7 +137,7 @@ public class Player : MonoBehaviour
             return false;
         }
 
-        LogDebug($"Attempting to move from ({currentPosition.x}, {currentPosition.y}) to ({newPosition.x}, {newPosition.y})");
+        //LogDebug($"Attempting to move from ({currentPosition.x}, {currentPosition.y}) to ({newPosition.x}, {newPosition.y})");
 
         Card targetCard = boardManager.GetCardAt(newPosition.x, newPosition.y);
         if (targetCard == null)
@@ -149,11 +148,11 @@ public class Player : MonoBehaviour
 
         if (!boardManager.IsCardAdjacent(currentPosition, newPosition))
         {
-            LogDebug($"Movement failed: Position ({newPosition.x}, {newPosition.y}) is not adjacent to current position ({currentPosition.x}, {currentPosition.y})");
+            //LogDebug($"Movement failed: Position ({newPosition.x}, {newPosition.y}) is not adjacent to current position ({currentPosition.x}, {currentPosition.y})");
             return false;
         }
 
-        Debug.Log($"[Player] Checking walkability: Card type = {targetCard.GetType().Name}, CanMoveOnto = {targetCard.CanMoveOnto}, TurnedAround = {targetCard.TurnedAround}");
+        //Debug.Log($"[Player] Checking walkability: Card type = {targetCard.GetType().Name}, CanMoveOnto = {targetCard.CanMoveOnto}, TurnedAround = {targetCard.TurnedAround}");
         if (!targetCard.CanMoveOnto)
         {
             // Check if it's a RockCard and player has ClimbingRope
@@ -163,13 +162,13 @@ public class Player : MonoBehaviour
     
             if (!canClimbRock)
             {
-                LogDebug($"Movement failed: Card at ({newPosition.x}, {newPosition.y}) [{targetCard.GetType().Name}] cannot be moved onto");
+                //LogDebug($"Movement failed: Card at ({newPosition.x}, {newPosition.y}) [{targetCard.GetType().Name}] cannot be moved onto");
                 targetCard.OnPlayerEnter();
                 return false;
             }
             else
             {
-                LogDebug($"Climbing onto RockCard using Climbing Rope!");
+                //LogDebug($"Climbing onto RockCard using Climbing Rope!");
             }
         }
 
@@ -182,7 +181,7 @@ public class Player : MonoBehaviour
         Vector2Int oldPosition = currentPosition;
         currentPosition = newPosition;
 
-        LogDebug($"Player moved from ({oldPosition.x}, {oldPosition.y}) to ({currentPosition.x}, {currentPosition.y})");
+        //LogDebug($"Player moved from ({oldPosition.x}, {oldPosition.y}) to ({currentPosition.x}, {currentPosition.y})");
 
         boardManager.SetPlayerScent(currentPosition);
         boardManager.SetPlayerPosition(currentPosition);
@@ -201,7 +200,7 @@ public class Player : MonoBehaviour
         // Check if satiated for healing
         if (isSatiated())
         {
-            LogDebug("Player is fully satiated!");
+            //LogDebug("Player is fully satiated!");
             applySatiationBonus();
         }
 
@@ -244,7 +243,7 @@ public class Player : MonoBehaviour
     public void SetPosition(Vector2Int newPosition)
     {
         currentPosition = newPosition;
-        LogDebug($"Player position set to ({currentPosition.x}, {currentPosition.y})");
+        //LogDebug($"Player position set to ({currentPosition.x}, {currentPosition.y})");
         
         if (boardManager != null)
         {
@@ -256,7 +255,7 @@ public class Player : MonoBehaviour
     
     private void UpdatePlayerChipPosition()
     {
-        Debug.Log($"[Player] UpdatePlayerChipPosition called. PlayerChipInstance null? {playerChipInstance == null}");
+        //Debug.Log($"[Player] UpdatePlayerChipPosition called. PlayerChipInstance null? {playerChipInstance == null}");
         
         if (playerChipInstance == null)
         {
@@ -270,7 +269,7 @@ public class Player : MonoBehaviour
             return;
         }
         
-        Debug.Log($"[Player] Current position: ({currentPosition.x}, {currentPosition.y})");
+        //Debug.Log($"[Player] Current position: ({currentPosition.x}, {currentPosition.y})");
         
         CardVisual cardVisual = boardManager.GetCardVisualAt(currentPosition.x, currentPosition.y);
         
@@ -282,8 +281,8 @@ public class Player : MonoBehaviour
         
         Vector3 cardWorldPosition = cardVisual.transform.position;
         
-        Debug.Log($"[Player] Card world position: {cardWorldPosition}");
-        Debug.Log($"[Player] Chip offset: {chipOffset}");
+        //Debug.Log($"[Player] Card world position: {cardWorldPosition}");
+        //Debug.Log($"[Player] Chip offset: {chipOffset}");
         
         Vector3 newChipPosition = cardWorldPosition + chipOffset;
         playerChipInstance.transform.position = newChipPosition;
@@ -294,8 +293,8 @@ public class Player : MonoBehaviour
             playerChipInstance.SetActive(true);
         }
         
-        Debug.Log($"[Player] Player chip moved to world position {newChipPosition}, chip active: {playerChipInstance.activeSelf}");
-        LogDebug($"Player chip moved to world position {newChipPosition}");
+        //Debug.Log($"[Player] Player chip moved to world position {newChipPosition}, chip active: {playerChipInstance.activeSelf}");
+        //LogDebug($"Player chip moved to world position {newChipPosition}");
     }
 
     // Resource Management
