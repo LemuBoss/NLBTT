@@ -7,9 +7,9 @@ using TMPro;
 /// Manages the player's inventory and item interactions
 /// Handles UI display and item usage
 /// </summary>
-public class ItemManager : MonoBehaviour
+public class PlayerItemManager : MonoBehaviour
 {
-    public enum Item
+    public enum ItemType
     {
         Flashlight,      // Taschenlampe
         BunnyStatue,     // Hasenstatue
@@ -18,15 +18,16 @@ public class ItemManager : MonoBehaviour
         DriedDragonfly,  // Getrocknete Libelle - Blutpunkte
         OldBread,        // Altes Brot - Blutpunkte bei Gesundheitverlust
         PileOfAshes,     // Haufen Asche - Blutpunkte verdoppeln/verlieren
-        CrowFeather,     // Krähenfeder - Ausdauer erhöhen
+        CrowFeather,     // Krähenfeder - Keine Geruchsspur
         BearClaw,        // Bärenkralle - Blutpunkte bei Itemzerstörung
-        EmergencyFood,   // Notrationen - Blutpunkte bei Essensgewinn
-        ObsidianShard    // Obsidiansplitter - Wiederbelebung
+        EmergencyFood,   // Notrationen - Hunger cap erhöhen
+        ObsidianShard,   // Obsidiansplitter - Wiederbelebung
+        ClimbingRope     // Kletterseil - Felskarten betreten
     }
 
     [Header("Inventory Settings")]
-    [SerializeField] private int maxItems = 3;
-    private List<Item> inventory = new List<Item>();
+    [SerializeField] private int maxInventorySlots = 3;
+    private List<ItemType> playerInventory = new List<ItemType>();
 
     [Header("UI Panel")]
     [SerializeField] private GameObject inventoryPanel;
@@ -41,16 +42,16 @@ public class ItemManager : MonoBehaviour
     private int flashlightCooldown = 0;
     private const int FLASHLIGHT_COOLDOWN_MAX = 10;
 
-    private Player player;
+    private Player playerComponent;
     private bool isPanelOpen = false;
 
     private void Awake()
     {
-        player = GetComponent<Player>();
+        playerComponent = GetComponent<Player>();
 
-        if (player == null)
+        if (playerComponent == null)
         {
-            Debug.LogError("[ItemManager] Player component not found!");
+            Debug.LogError("[PlayerItemManager] Player component not found!");
         }
 
         // Hide panel initially
@@ -69,7 +70,7 @@ public class ItemManager : MonoBehaviour
             inventoryTitleText.text = "Inventar";
 
         // Player starts with Flashlight
-        AddItem(Item.Flashlight);
+        AddItemToInventory(ItemType.Flashlight);
     }
 
     private void Update()
@@ -81,13 +82,6 @@ public class ItemManager : MonoBehaviour
         {
             ToggleInventoryUI();
         }
-
-        // Update flashlight cooldown
-        if (flashlightCooldown > 0)
-        {
-            // Cooldown decreases each turn (when player moves)
-            // This will be called externally by Player after movement
-        }
     }
 
     /// <summary>
@@ -97,7 +91,7 @@ public class ItemManager : MonoBehaviour
     {
         if (inventoryPanel == null)
         {
-            Debug.LogError("[ItemManager] Inventory panel not assigned!");
+            Debug.LogError("[PlayerItemManager] Inventory panel not assigned!");
             LogInventoryToConsole();
             return;
         }
@@ -110,7 +104,7 @@ public class ItemManager : MonoBehaviour
             UpdateInventoryUI();
         }
 
-        Debug.Log($"[ItemManager] Inventory UI toggled: {(isPanelOpen ? "Open" : "Closed")}");
+        Debug.Log($"[PlayerItemManager] Inventory UI toggled: {(isPanelOpen ? "Open" : "Closed")}");
     }
 
     /// <summary>
@@ -121,22 +115,22 @@ public class ItemManager : MonoBehaviour
         if (inventoryListText == null)
             return;
 
-        string inventoryText = $"Items ({inventory.Count}/{maxItems}):\n\n";
+        string inventoryText = $"Items ({playerInventory.Count}/{maxInventorySlots}):\n\n";
 
-        if (inventory.Count == 0)
+        if (playerInventory.Count == 0)
         {
             inventoryText += "Keine Items vorhanden.";
         }
         else
         {
-            for (int i = 0; i < inventory.Count; i++)
+            for (int i = 0; i < playerInventory.Count; i++)
             {
-                inventoryText += $"{i + 1}. {GetItemDisplayName(inventory[i])}\n";
-                inventoryText += $"   {GetItemDescription(inventory[i])}\n\n";
+                inventoryText += $"{i + 1}. {GetItemDisplayName(playerInventory[i])}\n";
+                inventoryText += $"   {GetItemDescription(playerInventory[i])}\n\n";
             }
         }
 
-        if (HasItem(Item.Flashlight))
+        if (HasItem(ItemType.Flashlight))
         {
             inventoryText += $"\n[Taschenlampe Cooldown: {flashlightCooldown} Züge]";
         }
@@ -149,39 +143,39 @@ public class ItemManager : MonoBehaviour
     /// </summary>
     public void LogInventoryToConsole()
     {
-        Debug.Log($"[ItemManager] === INVENTAR ({inventory.Count}/{maxItems}) ===");
+        Debug.Log($"[PlayerItemManager] === INVENTAR ({playerInventory.Count}/{maxInventorySlots}) ===");
 
-        if (inventory.Count == 0)
+        if (playerInventory.Count == 0)
         {
-            Debug.Log("[ItemManager] Keine Items vorhanden.");
+            Debug.Log("[PlayerItemManager] Keine Items vorhanden.");
         }
         else
         {
-            for (int i = 0; i < inventory.Count; i++)
+            for (int i = 0; i < playerInventory.Count; i++)
             {
-                Debug.Log($"[ItemManager] {i + 1}. {GetItemDisplayName(inventory[i])}");
+                Debug.Log($"[PlayerItemManager] {i + 1}. {GetItemDisplayName(playerInventory[i])}");
             }
         }
 
-        if (HasItem(Item.Flashlight))
+        if (HasItem(ItemType.Flashlight))
         {
-            Debug.Log($"[ItemManager] Taschenlampe Cooldown: {flashlightCooldown} Züge");
+            Debug.Log($"[PlayerItemManager] Taschenlampe Cooldown: {flashlightCooldown} Züge");
         }
     }
 
     /// <summary>
     /// Adds an item to the inventory if there's space
     /// </summary>
-    public bool AddItem(Item item)
+    public bool AddItemToInventory(ItemType item)
     {
-        if (inventory.Count >= maxItems)
+        if (playerInventory.Count >= maxInventorySlots)
         {
-            Debug.Log("[ItemManager] Inventar voll! Kann kein weiteres Item aufnehmen.");
+            Debug.Log("[PlayerItemManager] Inventar voll! Kann kein weiteres Item aufnehmen.");
             return false;
         }
 
-        inventory.Add(item);
-        Debug.Log($"[ItemManager] Item hinzugefügt: {GetItemDisplayName(item)}");
+        playerInventory.Add(item);
+        Debug.Log($"[PlayerItemManager] Item hinzugefügt: {GetItemDisplayName(item)}");
 
         // Apply passive effects
         ApplyPassiveEffect(item);
@@ -193,12 +187,12 @@ public class ItemManager : MonoBehaviour
     /// <summary>
     /// Removes an item from the inventory
     /// </summary>
-    public bool RemoveItem(Item item)
+    public bool RemoveItemFromInventory(ItemType item)
     {
-        if (inventory.Contains(item))
+        if (playerInventory.Contains(item))
         {
-            inventory.Remove(item);
-            Debug.Log($"[ItemManager] Item entfernt: {GetItemDisplayName(item)}");
+            playerInventory.Remove(item);
+            Debug.Log($"[PlayerItemManager] Item entfernt: {GetItemDisplayName(item)}");
 
             // Remove passive effects
             RemovePassiveEffect(item);
@@ -207,52 +201,52 @@ public class ItemManager : MonoBehaviour
             return true;
         }
 
-        Debug.Log($"[ItemManager] Item nicht im Inventar: {GetItemDisplayName(item)}");
+        Debug.Log($"[PlayerItemManager] Item nicht im Inventar: {GetItemDisplayName(item)}");
         return false;
     }
 
     /// <summary>
     /// Destroys an item and triggers its destruction effect
     /// </summary>
-    public void DestroyItem(Item item)
+    public void DestroyItem(ItemType item)
     {
-        if (!inventory.Contains(item))
+        if (!playerInventory.Contains(item))
         {
-            Debug.Log($"[ItemManager] Kann Item nicht zerstören: {GetItemDisplayName(item)} - nicht im Inventar");
+            Debug.Log($"[PlayerItemManager] Kann Item nicht zerstören: {GetItemDisplayName(item)} - nicht im Inventar");
             return;
         }
 
-        Debug.Log($"[ItemManager] Zerstöre Item: {GetItemDisplayName(item)}");
+        Debug.Log($"[PlayerItemManager] Zerstöre Item: {GetItemDisplayName(item)}");
 
         // Trigger destruction effect
         OnItemDestroyed(item);
 
         // Remove from inventory
-        RemoveItem(item);
+        RemoveItemFromInventory(item);
     }
 
     /// <summary>
     /// Checks if the player has a specific item
     /// </summary>
-    public bool HasItem(Item item)
+    public bool HasItem(ItemType item)
     {
-        return inventory.Contains(item);
+        return playerInventory.Contains(item);
     }
 
     /// <summary>
     /// Gets the current number of items
     /// </summary>
-    public int GetItemCount()
+    public int GetCurrentItemCount()
     {
-        return inventory.Count;
+        return playerInventory.Count;
     }
 
     /// <summary>
     /// Gets a copy of the inventory list
     /// </summary>
-    public List<Item> GetInventory()
+    public List<ItemType> GetInventoryList()
     {
-        return new List<Item>(inventory);
+        return new List<ItemType>(playerInventory);
     }
 
     /// <summary>
@@ -263,23 +257,29 @@ public class ItemManager : MonoBehaviour
         if (flashlightCooldown > 0)
         {
             flashlightCooldown--;
-            Debug.Log($"[ItemManager] Taschenlampe Cooldown: {flashlightCooldown}");
+            Debug.Log($"[PlayerItemManager] Taschenlampe Cooldown: {flashlightCooldown}");
         }
     }
 
     /// <summary>
     /// Applies passive effects when item is added
     /// </summary>
-    private void ApplyPassiveEffect(Item item)
+    private void ApplyPassiveEffect(ItemType item)
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
         switch (item)
         {
-            case Item.CrowFeather:
-                // Increase stamina cap by 2
-                player.modifyStamina(2);
-                Debug.Log("[ItemManager] Krähenfeder: Ausdauer um 2 erhöht");
+            case ItemType.EmergencyFood:
+                // Increase hunger cap by 10
+                playerComponent.ModifyHungerCap(10);
+                Debug.Log("[PlayerItemManager] Notrationen: Hunger-Kapazität um 10 erhöht");
+                break;
+
+            case ItemType.OldBread:
+                // Prevent self-healing
+                playerComponent.SetCanHealSelf(false);
+                Debug.Log("[PlayerItemManager] Altes Brot: Selbstheilung deaktiviert");
                 break;
         }
     }
@@ -287,16 +287,22 @@ public class ItemManager : MonoBehaviour
     /// <summary>
     /// Removes passive effects when item is removed
     /// </summary>
-    private void RemovePassiveEffect(Item item)
+    private void RemovePassiveEffect(ItemType item)
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
         switch (item)
         {
-            case Item.CrowFeather:
-                // Decrease stamina (but not below 0)
-                player.modifyStamina(-2);
-                Debug.Log("[ItemManager] Krähenfeder entfernt: Ausdauer um 2 verringert");
+            case ItemType.EmergencyFood:
+                // Decrease hunger cap
+                playerComponent.ModifyHungerCap(-10);
+                Debug.Log("[PlayerItemManager] Notrationen entfernt: Hunger-Kapazität um 10 verringert");
+                break;
+
+            case ItemType.OldBread:
+                // Re-enable self-healing
+                playerComponent.SetCanHealSelf(true);
+                Debug.Log("[PlayerItemManager] Altes Brot entfernt: Selbstheilung aktiviert");
                 break;
         }
     }
@@ -304,49 +310,61 @@ public class ItemManager : MonoBehaviour
     /// <summary>
     /// Handles item destruction effects
     /// </summary>
-    private void OnItemDestroyed(Item item)
+    private void OnItemDestroyed(ItemType item)
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
         switch (item)
         {
-            case Item.BunnyStatue:
+            case ItemType.BunnyStatue:
                 // Can be eaten for 10 food
-                player.modifyHunger(10);
-                Debug.Log("[ItemManager] Hasenstatue verzehrt: +10 Essen");
+                playerComponent.ModifyHunger(10);
+                Debug.Log("[PlayerItemManager] Hasenstatue verzehrt: +10 Essen");
                 break;
 
-            case Item.OldBread:
+            case ItemType.OldBread:
                 // Get 10 food and 3 health, lose half carried bloodpoints
-                player.modifyHunger(10);
-                player.modifyHealth(3);
-                int halfBloodpoints = player.GetBloodpoints() / 2;
-                player.modifyBloodpoints(-halfBloodpoints);
-                Debug.Log($"[ItemManager] Altes Brot zerstört: +10 Essen, +3 Gesundheit, -{halfBloodpoints} Blutpunkte");
+                playerComponent.ModifyHunger(10);
+                playerComponent.ModifyHealth(3);
+                int halfBloodpoints = playerComponent.GetBloodpoints() / 2;
+                playerComponent.ModifyBloodpoints(-halfBloodpoints);
+                Debug.Log($"[PlayerItemManager] Altes Brot zerstört: +10 Essen, +3 Gesundheit, -{halfBloodpoints} Blutpunkte");
                 break;
 
-            case Item.PileOfAshes:
-                // Lose 1 health
-                player.modifyHealth(-1);
-                Debug.Log("[ItemManager] Haufen Asche zerstört: -1 Gesundheit");
+            case ItemType.PileOfAshes:
+                // Lose 2 health (but not below 1)
+                int currentHealth = playerComponent.GetHealth();
+                int healthLoss = Mathf.Min(2, currentHealth - 1);
+                if (healthLoss > 0)
+                {
+                    playerComponent.ModifyHealth(-healthLoss);
+                }
+                Debug.Log($"[PlayerItemManager] Haufen Asche zerstört: -{healthLoss} Gesundheit");
                 break;
 
-            case Item.CrowFeather:
-                // Get 3 bloodpoints
-                player.modifyBloodpoints(3);
-                Debug.Log("[ItemManager] Krähenfeder zerstört: +3 Blutpunkte");
+            case ItemType.CrowFeather:
+                // No effect on destruction
+                Debug.Log("[PlayerItemManager] Krähenfeder zerstört");
                 break;
 
-            case Item.BearClaw:
-                // Get 5 bloodpoints (including for destroying itself)
-                player.modifyBloodpoints(5);
-                Debug.Log("[ItemManager] Bärenkralle zerstört: +5 Blutpunkte");
+            case ItemType.BearClaw:
+                // Random: 5 bloodpoints or -1 health
+                if (Random.value > 0.5f)
+                {
+                    playerComponent.ModifyBloodpoints(5);
+                    Debug.Log("[PlayerItemManager] Bärenkralle zerstört: +5 Blutpunkte");
+                }
+                else
+                {
+                    playerComponent.ModifyHealth(-1);
+                    Debug.Log("[PlayerItemManager] Bärenkralle zerstört: -1 Leben");
+                }
                 break;
 
-            case Item.EmergencyFood:
+            case ItemType.EmergencyFood:
                 // Get 10 food
-                player.modifyHunger(10);
-                Debug.Log("[ItemManager] Notrationen zerstört: +10 Essen");
+                playerComponent.ModifyHunger(10);
+                Debug.Log("[PlayerItemManager] Notrationen zerstört: +10 Essen");
                 break;
         }
     }
@@ -356,20 +374,20 @@ public class ItemManager : MonoBehaviour
     /// </summary>
     public void OnBloodpointsGained(int amount)
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
         // Knife: Get bonus bloodpoint
-        if (HasItem(Item.Knife))
+        if (HasItem(ItemType.Knife))
         {
-            player.modifyBloodpoints(1);
-            Debug.Log("[ItemManager] Messer-Bonus: +1 Blutpunkt");
+            playerComponent.ModifyBloodpoints(1);
+            Debug.Log("[PlayerItemManager] Messer-Bonus: +1 Blutpunkt");
         }
 
         // Pile of Ashes: Double bloodpoints gained
-        if (HasItem(Item.PileOfAshes))
+        if (HasItem(ItemType.PileOfAshes))
         {
-            player.modifyBloodpoints(amount);
-            Debug.Log($"[ItemManager] Haufen Asche-Bonus: +{amount} Blutpunkte (verdoppelt)");
+            playerComponent.ModifyBloodpoints(amount);
+            Debug.Log($"[PlayerItemManager] Haufen Asche-Bonus: +{amount} Blutpunkte (verdoppelt)");
         }
     }
 
@@ -378,26 +396,26 @@ public class ItemManager : MonoBehaviour
     /// </summary>
     public void OnHealthLost(int amount)
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
         // Old Bread: Get 5 bloodpoints per health lost
-        if (HasItem(Item.OldBread))
+        if (HasItem(ItemType.OldBread))
         {
             int bloodpointsGained = amount * 5;
-            player.modifyBloodpoints(bloodpointsGained);
-            Debug.Log($"[ItemManager] Altes Brot-Bonus: +{bloodpointsGained} Blutpunkte");
+            playerComponent.ModifyBloodpoints(bloodpointsGained);
+            Debug.Log($"[PlayerItemManager] Altes Brot-Bonus: +{bloodpointsGained} Blutpunkte");
         }
 
         // Pile of Ashes: Lose all carried bloodpoints
-        if (HasItem(Item.PileOfAshes))
+        if (HasItem(ItemType.PileOfAshes))
         {
-            int lostBloodpoints = player.GetBloodpoints();
-            player.modifyBloodpoints(-lostBloodpoints);
-            Debug.Log($"[ItemManager] Haufen Asche-Malus: -{lostBloodpoints} Blutpunkte verloren");
+            int lostBloodpoints = playerComponent.GetBloodpoints();
+            playerComponent.ModifyBloodpoints(-lostBloodpoints);
+            Debug.Log($"[PlayerItemManager] Haufen Asche-Malus: -{lostBloodpoints} Blutpunkte verloren");
         }
 
         // Obsidian Shard: Auto-trigger on death
-        if (player.GetHealth() <= 0 && HasItem(Item.ObsidianShard))
+        if (playerComponent.GetHealth() <= 0 && HasItem(ItemType.ObsidianShard))
         {
             TriggerObsidianShard();
         }
@@ -408,14 +426,9 @@ public class ItemManager : MonoBehaviour
     /// </summary>
     public void OnFoodGained(int amount)
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
-        // Emergency Food: Get 3 bloodpoints
-        if (HasItem(Item.EmergencyFood))
-        {
-            player.modifyBloodpoints(3);
-            Debug.Log("[ItemManager] Notrationen-Bonus: +3 Blutpunkte");
-        }
+        // Note: EmergencyFood passive effect is handled in ApplyPassiveEffect
     }
 
     /// <summary>
@@ -423,17 +436,17 @@ public class ItemManager : MonoBehaviour
     /// </summary>
     private void TriggerObsidianShard()
     {
-        int carriedBloodpoints = player.GetBloodpoints();
+        int carriedBloodpoints = playerComponent.GetBloodpoints();
         int healthRestored = carriedBloodpoints / 5;
 
         if (healthRestored > 0)
         {
-            player.modifyHealth(healthRestored);
-            player.modifyBloodpoints(-carriedBloodpoints);
-            Debug.Log($"[ItemManager] Obsidiansplitter aktiviert: +{healthRestored} Gesundheit, -{carriedBloodpoints} Blutpunkte");
+            playerComponent.ModifyHealth(healthRestored);
+            playerComponent.ModifyBloodpoints(-carriedBloodpoints);
+            Debug.Log($"[PlayerItemManager] Obsidiansplitter aktiviert: +{healthRestored} Gesundheit, -{carriedBloodpoints} Blutpunkte");
         }
 
-        DestroyItem(Item.ObsidianShard);
+        DestroyItem(ItemType.ObsidianShard);
     }
 
     /// <summary>
@@ -441,33 +454,34 @@ public class ItemManager : MonoBehaviour
     /// </summary>
     public void OnItemDestroyedTrigger()
     {
-        if (player == null) return;
+        if (playerComponent == null) return;
 
-        if (HasItem(Item.BearClaw))
+        if (HasItem(ItemType.BearClaw))
         {
-            player.modifyBloodpoints(5);
-            Debug.Log("[ItemManager] Bärenkralle-Bonus: +5 Blutpunkte (Item zerstört)");
+            playerComponent.ModifyBloodpoints(5);
+            Debug.Log("[PlayerItemManager] Bärenkralle-Bonus: +5 Blutpunkte (Item zerstört)");
         }
     }
 
     /// <summary>
     /// Gets the display name for an item
     /// </summary>
-    private string GetItemDisplayName(Item item)
+    private string GetItemDisplayName(ItemType item)
     {
         switch (item)
         {
-            case Item.Flashlight: return "Taschenlampe";
-            case Item.BunnyStatue: return "Hasenstatue";
-            case Item.Knife: return "Messer";
-            case Item.JarOfNeedles: return "Nadeln im Glas";
-            case Item.DriedDragonfly: return "Getrocknete Libelle";
-            case Item.OldBread: return "Altes Brot";
-            case Item.PileOfAshes: return "Haufen Asche";
-            case Item.CrowFeather: return "Krähenfeder";
-            case Item.BearClaw: return "Bärenkralle";
-            case Item.EmergencyFood: return "Notrationen";
-            case Item.ObsidianShard: return "Obsidiansplitter";
+            case ItemType.Flashlight: return "Taschenlampe";
+            case ItemType.BunnyStatue: return "Hasenstatue";
+            case ItemType.Knife: return "Messer";
+            case ItemType.JarOfNeedles: return "Nadeln im Glas";
+            case ItemType.DriedDragonfly: return "Getrocknete Libelle";
+            case ItemType.OldBread: return "Altes Brot";
+            case ItemType.PileOfAshes: return "Haufen Asche";
+            case ItemType.CrowFeather: return "Krähenfeder";
+            case ItemType.BearClaw: return "Bärenkralle";
+            case ItemType.EmergencyFood: return "Notrationen";
+            case ItemType.ObsidianShard: return "Obsidiansplitter";
+            case ItemType.ClimbingRope: return "Kletterseil";
             default: return item.ToString();
         }
     }
@@ -475,88 +489,38 @@ public class ItemManager : MonoBehaviour
     /// <summary>
     /// Gets the description for an item
     /// </summary>
-    private string GetItemDescription(Item item)
+    private string GetItemDescription(ItemType item)
     {
         switch (item)
         {
-            case Item.Flashlight:
+            case ItemType.Flashlight:
                 return "Zeige eine verdeckte Karte (1x pro 10 Züge)";
-            case Item.BunnyStatue:
+            case ItemType.BunnyStatue:
                 return "Entkomme Wolfsangriffen oder verzehre für 10 Essen";
-            case Item.Knife:
+            case ItemType.Knife:
                 return "Bessere Wolfangriffe, +1 Blutpunkt bei jedem Gewinn";
-            case Item.JarOfNeedles:
+            case ItemType.JarOfNeedles:
                 return "+1 Blutpunkt pro Waldkarte in Reihe bei Events";
-            case Item.DriedDragonfly:
+            case ItemType.DriedDragonfly:
                 return "+2 Blutpunkte pro Sumpfkarte in Spalte bei Events";
-            case Item.OldBread:
-                return "+5 Blutpunkte pro verlorenem Leben";
-            case Item.PileOfAshes:
+            case ItemType.OldBread:
+                return "+5 Blutpunkte pro verlorenem Leben, verhindert Selbstheilung";
+            case ItemType.PileOfAshes:
                 return "Doppelte Blutpunkte, verliere alle bei Schaden";
-            case Item.CrowFeather:
-                return "+2 maximale Ausdauer";
-            case Item.BearClaw:
+            case ItemType.CrowFeather:
+                return "Keine Geruchsspur mehr";
+            case ItemType.BearClaw:
                 return "+5 Blutpunkte pro zerstörtem Item";
-            case Item.EmergencyFood:
-                return "+3 Blutpunkte bei Essensgewinn";
-            case Item.ObsidianShard:
+            case ItemType.EmergencyFood:
+                return "+10 maximales Essen";
+            case ItemType.ObsidianShard:
                 return "Verhindere Tod: +1 Leben pro 5 Blutpunkte";
+            case ItemType.ClimbingRope:
+                return "Betrete Felskarten für 4 Essen";
             default:
                 return "";
         }
     }
-
-    // Flashlight verändert sich (Wolfsfiguren sind ständig sichtbar)
-    // Zerstörungseffekt: Keins
-
-    // Hasenstatue bleibt größtenteils gleich (Wenn man die Hasenstatue besitzt, erscheint beim Wolfevent ein neues Entscheidungsfeld. Dieses Entscheidungsfeld löst kein Minigame aus, sondern führt zur Erfolgreichen Flucht) -- Müsste mit ComplexEventUI und dem Wolfevent interagieren
-    // Zerstörungseffekt: Füllt Nahrung komplett auf
-
-    // Messer ändert sich (Minigame, also Wolfkampf und Beerenpflücken, wird einfacher) -- Einfach nur mit MinigameConfigs
-    // Zerstörungseffekt: Keins
-
-    // Nadeln im Glas (Bleibt gleich, 1+ Blutpunkt pro Waldkarte in derselben Reihe, in der ein Blutpunkte Event ausgelöst wird)
-    // Zerstörungseffekt: -1 Nahrung pro Waldkarte in derselben Reihe
-
-    // Getrocknete Libelle (Bleibt gleich, 2+ Blutpunkte pro Sumpfkarte in derselben Spalte, in der ein Blutpunkte Event ausgelöst wird)
-    // Zerstörungseffekt: -1 Nahrung pro Sumpfkarte in derselben Spalte
-
-    // Altes Brot (+5 Blutpunkte pro verlorenem Leben, man darf sich aber selbst nicht mehr heilen) -- Müsste mit Player interagieren
-    // Zerstörungseffekt: Man darf sich wieder selber heilen. +10 Nahrung, +3 Gesundheit, verliert die Hälfte der getragenen Blutpunkte
-
-    // Haufen Asche (Jeder Blutpunkte-Gewinn ist verdoppelt, aber man verliert alle Blutpunkte, die man bei sich trägt, sobald man ein Leben verliert) -- Müsste mit Player interagieren
-    // Zerstörungseffekt: -2 Gesundheit (kann nicht auf 0 fallen). Dies triggert den Effekt der Asche nicht nochmal.
-
-    // Krähenfeder (Man hinterlässt keine Geruchsspur mehr, aber Kämpfe mit Wölfen werden härter) -- Muss mit Player und Wölfen interagieren
-    // Zerstörungseffekt: Keins
-
-    // Bärenkralle (Solange man die Bärenkralle bei sich trägt, erhält man ENTWEDER 5 Blutpunkte, oder verliert 1 Leben, eingeschlossen dieses Item. Der Effekt ist somit zufällig.) -- Müsste mit Player interagieren
-    // Zerstörungseffekt: +5 Blutpunkte oder -1 Leben
-
-    // Notrationen (Das maximale Essen, das man bei sich tragen kann, wird um 10 erhöht) -- Muss mit Player interagieren
-    // Zerstörungseffekt: +10 Nahrung
-
-    // Obsidianscherbe (Fällt man auf 0 Gesundheit, erhält man eine zweite Chance und die Gesundheit wird wieder aufgefüllt. Für den Rest der Runde werden jedoch alle Blutpunktgewinne halbiert. Danach zerstört sich dieses Item von selbst) -- Muss mit Player interagieren
-    // Zerstörungseffekt: Keins
-
-    // Kletterseil (Man kann Felskarten betreten. Das Betreten von Felskarten verbraucht 4 Essen) -- Muss mit Player, BoardManager und CardVisual interagieren
-    // Zerstörungseffekt: Keins
-
-    // Ungeöffneter Brief (Neues Item: es gibt pro Karte zwei Händler. Man erhält den Brief von einem Händler, und muss ihn zum jeweils anderen Händler bringen, ohne ein einziges Event (Beeren, Wolf, Altes Haus, Blutpunkte), auszulösen.
-    // Schafft man dies, erhält man als Belohnung 2 Blutpunkte pro Karte, die zwischen den beiden Händlern liegt (Funktion dafür existiert bereits), und Nahrung wird aufgefüllt. 
-    // Gerät man in ein Event, zerstört sich der Brief von selbst.
-
-    // Händler: Der Händler spawnt mit drei Itemslots. Die Items sind zufällig. Kauft man sich ein Item, verschwinden die anderen beiden Items, die nicht gekauft wurden. Die Items
-    // werde wieder per Zufall aufgefüllt, es werden jedoch nur noch zwei angeboten. Kauft man sich wieder ein Item, bleibt nur noch eines über; hat man alle Items aufgekauft, verschwindet
-    // der Händler für ein paar Züge. Verkauft man Gegenstände beim Händler, werden die maximalen Itemslots wieder hergestellt. 
-
-    // Die Schwierigkeit in der Implementation darin liegt, dass die Items Einfluss auf sehr viele Klassen und Vorgänge besitzen. Alle Blutpunkte, die erhalten werden, müssen durch die
-    // ItemManager-Klasse laufen, damit die Effekte der Items berücksichtigt werden können. Gleiches gilt für Gesundheitsverluste und Nahrungsgewinne des Spielers, sowie die MiniGames.
-    // Zudem müssen einige Items mit dem UI interagieren (Entscheidungen bei Events hinzufügen etc.)
-    // UI muss ebenfalls überarbeitet werden: Anstatt eines Canvas werden die Items diegetisch auf einem Tisch angezeigt. Geht man mit der Maus über ein Item, wird ein Name und eine Beschreibung angezeigt, sowie der Effekt bei Zerstörung. Items werden zerstört, indem man lange ein Item gedrückt hält.
-
-
-
 
     /// <summary>
     /// Called when close button is clicked
@@ -567,17 +531,17 @@ public class ItemManager : MonoBehaviour
             inventoryPanel.SetActive(false);
 
         isPanelOpen = false;
-        Debug.Log("[ItemManager] Inventory UI closed");
+        Debug.Log("[PlayerItemManager] Inventory UI closed");
     }
 
     /// <summary>
     /// Resets inventory to starting state (only flashlight)
     /// </summary>
-    public void ResetInventory()
+    public void ResetItemStates()
     {
-        inventory.Clear();
+        playerInventory.Clear();
         flashlightCooldown = 0;
-        AddItem(Item.Flashlight);
-        Debug.Log("[ItemManager] Inventory reset to starting state");
+        AddItemToInventory(ItemType.Flashlight);
+        Debug.Log("[PlayerItemManager] Inventory reset to starting state");
     }
 }
