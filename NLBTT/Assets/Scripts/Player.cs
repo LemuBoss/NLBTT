@@ -2,6 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Handles player state and position on the game board
+/// FIX: Wolf movement only happens on ACTUAL player turns, not on every TryMoveTo
 /// </summary>
 public class Player : MonoBehaviour
 {
@@ -90,7 +91,6 @@ public class Player : MonoBehaviour
         if (boardManager != null)
         {
             currentPosition = boardManager.GetPlayerPosition();
-            //LogDebug($"Player initialized at position ({currentPosition.x}, {currentPosition.y})");
 
             UpdatePlayerChipPosition();
             audioSource.PlayOneShot(moveSound);
@@ -99,7 +99,6 @@ public class Player : MonoBehaviour
             if (startCard != null)
             {
                 startCard.OnPlayerEnter();
-                //LogDebug($"Notified starting card of player presence");
             }
         }
     }
@@ -118,26 +117,26 @@ public class Player : MonoBehaviour
         {
             if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
             {
-                //LogDebug($"Triggering event on {currentCard.GetType().Name}");
                 currentCard.TriggerEvent();
             }
         }
         else if (Input.GetKeyDown(KeyCode.Space))
         {
-            //LogDebug($"Triggering event on {currentCard.GetType().Name}");
             currentCard.TriggerEvent();
         }
     }
 
-    public bool TryMoveTo(Vector2Int newPosition)
+    /// <summary>
+    /// Attempts to move the player to a new position
+    /// FIX: Takes a parameter to control whether wolves should move after this
+    /// </summary>
+    public bool TryMoveTo(Vector2Int newPosition, bool triggerWolfMovement = true)
     {
         if (boardManager == null)
         {
             Debug.LogError("Player: Cannot move - BoardManager reference is null");
             return false;
         }
-
-        //LogDebug($"Attempting to move from ({currentPosition.x}, {currentPosition.y}) to ({newPosition.x}, {newPosition.y})");
 
         Card targetCard = boardManager.GetCardAt(newPosition.x, newPosition.y);
         if (targetCard == null)
@@ -148,11 +147,9 @@ public class Player : MonoBehaviour
 
         if (!boardManager.IsCardAdjacent(currentPosition, newPosition))
         {
-            //LogDebug($"Movement failed: Position ({newPosition.x}, {newPosition.y}) is not adjacent to current position ({currentPosition.x}, {currentPosition.y})");
             return false;
         }
 
-        //Debug.Log($"[Player] Checking walkability: Card type = {targetCard.GetType().Name}, CanMoveOnto = {targetCard.CanMoveOnto}, TurnedAround = {targetCard.TurnedAround}");
         if (!targetCard.CanMoveOnto)
         {
             // Check if it's a RockCard and player has ClimbingRope
@@ -162,13 +159,8 @@ public class Player : MonoBehaviour
     
             if (!canClimbRock)
             {
-                //LogDebug($"Movement failed: Card at ({newPosition.x}, {newPosition.y}) [{targetCard.GetType().Name}] cannot be moved onto");
                 targetCard.OnPlayerEnter();
                 return false;
-            }
-            else
-            {
-                //LogDebug($"Climbing onto RockCard using Climbing Rope!");
             }
         }
 
@@ -180,8 +172,6 @@ public class Player : MonoBehaviour
 
         Vector2Int oldPosition = currentPosition;
         currentPosition = newPosition;
-
-        //LogDebug($"Player moved from ({oldPosition.x}, {oldPosition.y}) to ({currentPosition.x}, {currentPosition.y})");
 
         boardManager.SetPlayerScent(currentPosition);
         boardManager.SetPlayerPosition(currentPosition);
@@ -200,7 +190,6 @@ public class Player : MonoBehaviour
         // Check if satiated for healing
         if (isSatiated())
         {
-            //LogDebug("Player is fully satiated!");
             applySatiationBonus();
         }
 
@@ -211,10 +200,16 @@ public class Player : MonoBehaviour
 
         boardManager.DecayScentGrid();
 
-        if (wolfAI != null)
+        // FIX: Only move wolves if this was a REAL player turn
+        if (triggerWolfMovement && wolfAI != null)
         {
+            LogDebug("🎲 Player turn complete - wolves now move");
             wolfAI.MoveAllWolves();
             wolfAI.UpdateAllWolfVisibility();
+        }
+        else
+        {
+            LogDebug("⏸️ Wolf movement skipped (not a player turn)");
         }
 
         return true;
@@ -227,11 +222,9 @@ public class Player : MonoBehaviour
     {
         if (card is TerrainCard terrainCard)
         {
-            // Terrain cards have their own hunger modifier
             return terrainCard.HungerModifier;
         }
         
-        // Default cost for non-terrain cards
         return baseHungerConsumption;
     }
 
@@ -243,7 +236,6 @@ public class Player : MonoBehaviour
     public void SetPosition(Vector2Int newPosition)
     {
         currentPosition = newPosition;
-        //LogDebug($"Player position set to ({currentPosition.x}, {currentPosition.y})");
         
         if (boardManager != null)
         {
@@ -255,11 +247,9 @@ public class Player : MonoBehaviour
     
     private void UpdatePlayerChipPosition()
     {
-        //Debug.Log($"[Player] UpdatePlayerChipPosition called. PlayerChipInstance null? {playerChipInstance == null}");
-        
         if (playerChipInstance == null)
         {
-            Debug.LogWarning("Player: Cannot update chip position - playerChipInstance is null! Assign a prefab in the Inspector.");
+            Debug.LogWarning("Player: Cannot update chip position - playerChipInstance is null!");
             return;
         }
         
@@ -268,8 +258,6 @@ public class Player : MonoBehaviour
             Debug.LogError("Player: Cannot update chip position - BoardManager is null");
             return;
         }
-        
-        //Debug.Log($"[Player] Current position: ({currentPosition.x}, {currentPosition.y})");
         
         CardVisual cardVisual = boardManager.GetCardVisualAt(currentPosition.x, currentPosition.y);
         
@@ -280,21 +268,13 @@ public class Player : MonoBehaviour
         }
         
         Vector3 cardWorldPosition = cardVisual.transform.position;
-        
-        //Debug.Log($"[Player] Card world position: {cardWorldPosition}");
-        //Debug.Log($"[Player] Chip offset: {chipOffset}");
-        
         Vector3 newChipPosition = cardWorldPosition + chipOffset;
         playerChipInstance.transform.position = newChipPosition;
         
         if (!playerChipInstance.activeSelf)
         {
-            Debug.LogWarning("Player chip model was inactive - activating it now");
             playerChipInstance.SetActive(true);
         }
-        
-        //Debug.Log($"[Player] Player chip moved to world position {newChipPosition}, chip active: {playerChipInstance.activeSelf}");
-        //LogDebug($"Player chip moved to world position {newChipPosition}");
     }
 
     // Resource Management
@@ -630,9 +610,7 @@ public class Player : MonoBehaviour
     public int GetBloodpointCardsVisited() => bloodpointCardsVisited;
     public int GetBloodpointsInAltar() => bloodpointsStoredInAltar;
     
-    // Legacy compatibility method (returns 0 since stamina is removed)
     public int GetStamina() => 0;
     public int GetStaminaCap() => 0;
 }
-
 

@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 /// <summary>
 /// Manages the UI windows for ComplexEventCard interactions
 /// Displays event choices and outcomes to the player
 /// Supports minigame integration and optional third choice
+/// FIX: Delays UI closing to prevent input bleeding through
 /// </summary>
 public class EventUIManager : MonoBehaviour
 {
@@ -18,10 +20,10 @@ public class EventUIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI eventDescriptionText;
     [SerializeField] private Button choiceAButton;
     [SerializeField] private Button choiceBButton;
-    [SerializeField] private Button choiceCButton; // NEW: Optional third choice
+    [SerializeField] private Button choiceCButton;
     [SerializeField] private TextMeshProUGUI choiceAButtonText;
     [SerializeField] private TextMeshProUGUI choiceBButtonText;
-    [SerializeField] private TextMeshProUGUI choiceCButtonText; // NEW
+    [SerializeField] private TextMeshProUGUI choiceCButtonText;
     
     [Header("Outcome Panel Elements")]
     [SerializeField] private TextMeshProUGUI outcomeText;
@@ -31,6 +33,10 @@ public class EventUIManager : MonoBehaviour
     private ComplexEventCard currentEventCard;
     private bool waitingForChoice = false;
     private bool waitingForMinigame = false;
+    
+    // NEW: Prevents input bleeding during UI closing
+    private bool isClosingUI = false;
+    private float uiCloseDelay = 0.1f; // One frame delay
     
     private void Awake()
     {
@@ -51,7 +57,7 @@ public class EventUIManager : MonoBehaviour
         if (choiceCButton != null)
         {
             choiceCButton.onClick.AddListener(OnChoiceCClicked);
-            choiceCButton.gameObject.SetActive(false); // Hidden by default
+            choiceCButton.gameObject.SetActive(false);
         }
         
         if (continueButton != null)
@@ -64,19 +70,19 @@ public class EventUIManager : MonoBehaviour
     
     /// <summary>
     /// Shows the event choice window with the given ComplexEventCard's information
-    /// Automatically shows/hides third choice button based on availability
     /// </summary>
     public void ShowEventChoice(ComplexEventCard eventCard)
     {
         if (eventCard == null)
         {
-            Debug.LogError("EventUIManager: Cannot show event - eventCard is null!");
+            Debug.LogError("[EventUIManager] Cannot show event - eventCard is null!");
             return;
         }
         
         currentEventCard = eventCard;
         waitingForChoice = true;
         waitingForMinigame = false;
+        isClosingUI = false; // Reset closing flag
         
         // Populate the choice panel with event information
         if (eventTitleText != null)
@@ -91,7 +97,7 @@ public class EventUIManager : MonoBehaviour
         if (choiceBButtonText != null)
             choiceBButtonText.text = eventCard.GetChoiceBText();
         
-        // NEW: Handle optional third choice
+        // Handle optional third choice
         if (choiceCButton != null)
         {
             string choiceCText = eventCard.GetChoiceCText();
@@ -183,7 +189,7 @@ public class EventUIManager : MonoBehaviour
     }
     
     /// <summary>
-    /// NEW: Called when the player clicks Choice C button (optional third choice)
+    /// Called when the player clicks Choice C button (optional third choice)
     /// </summary>
     private void OnChoiceCClicked()
     {
@@ -206,7 +212,6 @@ public class EventUIManager : MonoBehaviour
     
     /// <summary>
     /// Shows the outcome window with the result text
-    /// Called directly for non-minigame choices
     /// </summary>
     private void ShowOutcome(string outcomeMessage)
     {
@@ -221,13 +226,12 @@ public class EventUIManager : MonoBehaviour
     
     /// <summary>
     /// Shows the outcome window after a minigame completes
-    /// Called by ComplexEventCard after minigame success/failure
     /// </summary>
     public void ShowOutcomeAfterMinigame(string outcomeMessage)
     {
         if (!waitingForMinigame)
         {
-            Debug.LogWarning("EventUIManager: ShowOutcomeAfterMinigame called but not waiting for minigame!");
+            Debug.LogWarning("[EventUIManager] ShowOutcomeAfterMinigame called but not waiting for minigame!");
             return;
         }
         
@@ -237,17 +241,40 @@ public class EventUIManager : MonoBehaviour
     
     /// <summary>
     /// Called when the player clicks the Continue button
+    /// FIX: Delays actual closing to prevent input bleeding
     /// </summary>
     private void OnContinueClicked()
     {
-        Debug.Log("[EventUIManager] Continue button clicked");
+        Debug.Log("[EventUIManager] Continue button clicked - starting delayed close");
         
-        // Hide outcome panel
+        // Start delayed closing
+        StartCoroutine(DelayedCloseUI());
+    }
+    
+    /// <summary>
+    /// NEW: Delays UI closing by one frame to prevent input bleeding
+    /// </summary>
+    private IEnumerator DelayedCloseUI()
+    {
+        // Set flag immediately to block CardVisual clicks
+        isClosingUI = true;
+        
+        // Wait one frame for Unity's input system to clear
+        yield return new WaitForSeconds(uiCloseDelay);
+        
+        // Now actually close the UI
         if (eventOutcomePanel != null)
             eventOutcomePanel.SetActive(false);
         
         // Clear current event
         currentEventCard = null;
+        
+        Debug.Log("[EventUIManager] UI closed after delay");
+        
+        // Wait one more frame before allowing input again
+        yield return null;
+        
+        isClosingUI = false;
         
         // Resume game
         ResumeGame();
@@ -270,13 +297,21 @@ public class EventUIManager : MonoBehaviour
         currentEventCard = null;
         waitingForChoice = false;
         waitingForMinigame = false;
+        isClosingUI = false;
     }
     
     /// <summary>
     /// Returns whether the UI is currently showing an event
+    /// FIX: Also returns true during closing delay
     /// </summary>
     public bool IsShowingEvent()
     {
+        // NEW: Block input during closing animation
+        if (isClosingUI)
+        {
+            return true;
+        }
+        
         return (eventChoicePanel != null && eventChoicePanel.activeSelf) ||
                (eventOutcomePanel != null && eventOutcomePanel.activeSelf) ||
                waitingForMinigame;

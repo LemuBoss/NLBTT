@@ -4,7 +4,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Manages all wolves on the board
 /// Handles wolf spawning, movement coordination, and AI pathfinding
-/// NEW: Manages despawned wolves and their respawn timers
+/// NEW: Central authority for wolf despawning/respawning
 /// </summary>
 public class WolfAI : MonoBehaviour
 {
@@ -93,6 +93,38 @@ public class WolfAI : MonoBehaviour
         den.AssignWolf(wolf);
         
         LogDebug($"Wolf spawned at ({position.x}, {position.y})");
+    }
+
+    /// <summary>
+    /// NEW METHOD: Despawns the wolf at the specified position
+    /// Called by WolfCard when player defeats a wolf
+    /// Returns true if a wolf was found and despawned
+    /// </summary>
+    public bool DespawnWolfAtPosition(Vector2Int position)
+    {
+        LogDebug($"🔍 Searching for wolf at position ({position.x}, {position.y})...");
+        
+        // Search through all wolves
+        foreach (Wolf wolf in wolves)
+        {
+            if (wolf == null || wolf.IsDespawned())
+                continue;
+            
+            Vector2Int wolfPos = wolf.GetPosition();
+            
+            LogDebug($"  - Checking wolf at ({wolfPos.x}, {wolfPos.y})");
+            
+            // Found the wolf at player's position
+            if (wolfPos == position)
+            {
+                LogDebug($"✓ Found wolf at position ({position.x}, {position.y}) - despawning!");
+                wolf.Despawn();
+                return true;
+            }
+        }
+        
+        LogDebug($"✗ No active wolf found at position ({position.x}, {position.y})");
+        return false;
     }
 
     /// <summary>
@@ -195,9 +227,12 @@ public class WolfAI : MonoBehaviour
             
             LogDebug($"Wolf {i} moved to ({chosenPosition.Value.x}, {chosenPosition.Value.y})");
 
+            // Check if wolf caught player - but don't trigger event here
+            // Event triggering is handled elsewhere (e.g. by a collision detection system)
             if (wolf.IsAtPlayerPosition())
             {
                 wolf.OnCatchPlayer();
+                LogDebug($"Wolf {i} is at player position - cooldown activated");
             }
         }
     }
@@ -359,7 +394,7 @@ public class WolfAI : MonoBehaviour
     }
     
     /// <summary>
-    /// NEW: Gets all currently active (non-despawned) wolves
+    /// Gets all currently active (non-despawned) wolves
     /// </summary>
     public List<Wolf> GetActiveWolves()
     {
@@ -375,7 +410,7 @@ public class WolfAI : MonoBehaviour
     }
     
     /// <summary>
-    /// NEW: Gets all currently despawned wolves
+    /// Gets all currently despawned wolves
     /// </summary>
     public List<Wolf> GetDespawnedWolves()
     {

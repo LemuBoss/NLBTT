@@ -2,15 +2,11 @@
 
 /// <summary>
 /// Wolf encounter event with minigame integration
-/// Both choices use minigames
-/// Fighting has a harder minigame than fleeing
-/// NEW: Winning the fight despawns the wolf for 10 turns
-/// NEW: If player has Bunny Statue, third option to sacrifice it for safe escape
+/// NEW ARCHITECTURE: No longer tracks individual wolves
+/// Delegates wolf management to WolfAI
 /// </summary>
 public class WolfCard : ComplexEventCard
 {
-    private Wolf wolfOnThisCard; // The wolf currently on this card (set by OnWolfEnter)
-
     public WolfCard()
     {
         // Event details
@@ -43,30 +39,46 @@ public class WolfCard : ComplexEventCard
         
         CheckForBunnyStatue();
     }
-
+    
     /// <summary>
-    /// Called by Wolf.cs when a wolf enters this card
-    /// Stores reference to the wolf for later use
+    /// NEW: Override TriggerEvent to log wolf positions when event starts
     /// </summary>
-    public override void OnWolfEnter(Wolf wolf)
+    public override void TriggerEvent()
     {
-        base.OnWolfEnter(wolf);
-        wolfOnThisCard = wolf;
-        Debug.Log($"[WolfCard] Wolf entered card, stored reference");
-    }
-
-    /// <summary>
-    /// Called by Wolf.cs when a wolf leaves this card
-    /// Clears the wolf reference
-    /// </summary>
-    public override void OnWolfExit(Wolf wolf)
-    {
-        base.OnWolfExit(wolf);
-        if (wolfOnThisCard == wolf)
+        Debug.Log($"[WolfCard] ⚡ === WOLF EVENT TRIGGERED ===");
+        
+        // Log player position
+        Player player = Object.FindFirstObjectByType<Player>();
+        if (player != null)
         {
-            wolfOnThisCard = null;
-            Debug.Log($"[WolfCard] Wolf left card, cleared reference");
+            Vector2Int playerPos = player.GetPosition();
+            Debug.Log($"[WolfCard] 🎯 Player position at trigger: ({playerPos.x}, {playerPos.y})");
         }
+        
+        // Log all wolf positions
+        WolfAI wolfAI = Object.FindFirstObjectByType<WolfAI>();
+        if (wolfAI != null)
+        {
+            var allWolves = wolfAI.GetWolves();
+            Debug.Log($"[WolfCard] 🐺 Total wolves at event trigger: {allWolves.Count}");
+            
+            for (int i = 0; i < allWolves.Count; i++)
+            {
+                Wolf wolf = allWolves[i];
+                if (wolf != null)
+                {
+                    Vector2Int wolfPos = wolf.GetPosition();
+                    bool isDespawned = wolf.IsDespawned();
+                    bool isOnCooldown = wolf.IsOnCooldown();
+                    string status = isDespawned ? "(DESPAWNED)" : isOnCooldown ? "(COOLDOWN)" : "(ACTIVE)";
+                    
+                    Debug.Log($"[WolfCard] 🐺 Wolf {i}: Position ({wolfPos.x}, {wolfPos.y}) {status}");
+                }
+            }
+        }
+        
+        // Call base implementation to show UI
+        base.TriggerEvent();
     }
 
     private void CheckForBunnyStatue()
@@ -87,49 +99,66 @@ public class WolfCard : ComplexEventCard
 
     protected override void OnChoiceASuccess()
     {
-        Debug.Log("Wolf Card - Choice A Success: Wolf defeated, bloodpoints gained");
+        Debug.Log("[WolfCard] Choice A Success: Wolf defeated, bloodpoints gained");
+        
+        // Find player reference if needed
+        if (player == null)
+        {
+            player = Object.FindFirstObjectByType<Player>();
+        }
         
         if (player != null)
         {
             ItemManager itemManager = player.GetItemManager();
             if (itemManager != null)
             {
+                Debug.Log($"[WolfCard] 🔍 ItemManager found! Adding 5 bloodpoints...");
+                Debug.Log($"[WolfCard] 🔍 Bloodpoints BEFORE: {player.GetBloodpoints()}");
                 itemManager.ModifyPlayerBloodpoints(5);
+                Debug.Log($"[WolfCard] 🔍 Bloodpoints AFTER: {player.GetBloodpoints()}");
+            }
+            else
+            {
+                Debug.LogError("[WolfCard] ItemManager is null!");
             }
         }
         else
         {
-            Debug.LogError("WolfCard: Player reference is null!");
+            Debug.LogError("[WolfCard] Player reference is null!");
         }
         
-        // NEW: Despawn the wolf after successful fight
-        if (wolfOnThisCard != null)
-        {
-            wolfOnThisCard.Despawn();
-            Debug.Log($"[WolfCard] 🐺💀 Wolf defeated and despawned! Will respawn in 10 turns.");
-            wolfOnThisCard = null; // Clear reference since wolf is despawned
-        }
-        else
-        {
-            Debug.LogWarning("[WolfCard] ⚠ No wolf on this card to despawn!");
-        }
+        // NEW: Delegate wolf despawning to WolfAI
+        DespawnWolfAtPlayerPosition();
     }
 
     protected override void OnChoiceAFailure()
     {
-        Debug.Log("Wolf Card - Choice A Failure: Wolf attacks, player loses health");
+        Debug.Log("[WolfCard] Choice A Failure: Wolf attacks, player loses health");
+        
+        // Find player reference if needed
+        if (player == null)
+        {
+            player = Object.FindFirstObjectByType<Player>();
+        }
         
         if (player != null)
         {
             ItemManager itemManager = player.GetItemManager();
             if (itemManager != null)
             {
+                Debug.Log($"[WolfCard] 🔍 ItemManager found! Removing 2 health...");
+                Debug.Log($"[WolfCard] 🔍 Health BEFORE: {player.GetHealth()}");
                 itemManager.ModifyPlayerHealth(-2);
+                Debug.Log($"[WolfCard] 🔍 Health AFTER: {player.GetHealth()}");
+            }
+            else
+            {
+                Debug.LogError("[WolfCard] ItemManager is null!");
             }
         }
         else
         {
-            Debug.LogError("WolfCard: Player reference is null!");
+            Debug.LogError("[WolfCard] Player reference is null!");
         }
         
         // Wolf stays active after failed fight
@@ -137,7 +166,7 @@ public class WolfCard : ComplexEventCard
 
     protected override void OnChoiceBSuccess()
     {
-        Debug.Log("Wolf Card - Choice B Success: Successful Escape");
+        Debug.Log("[WolfCard] Choice B Success: Successful Escape");
         
         // No special effect - player successfully escapes without consequence
         // Wolf remains active
@@ -145,7 +174,13 @@ public class WolfCard : ComplexEventCard
 
     protected override void OnChoiceBFailure()
     {
-        Debug.Log("Wolf Card - Choice B Failure: Wolf catches up and hurts player");
+        Debug.Log("[WolfCard] Choice B Failure: Wolf catches up and hurts player");
+        
+        // Find player reference if needed
+        if (player == null)
+        {
+            player = Object.FindFirstObjectByType<Player>();
+        }
         
         if (player != null)
         {
@@ -157,7 +192,7 @@ public class WolfCard : ComplexEventCard
         }
         else
         {
-            Debug.LogError("WolfCard: Player reference is null!");
+            Debug.LogError("[WolfCard] Player reference is null!");
         }
         
         // Wolf remains active after failed flee
@@ -165,7 +200,13 @@ public class WolfCard : ComplexEventCard
 
     protected override void OnChoiceC()
     {
-        Debug.Log("Wolf Card - Choice C: Bunny Statue sacrificed for safe escape");
+        Debug.Log("[WolfCard] Choice C: Bunny Statue sacrificed for safe escape");
+        
+        // Find player reference if needed
+        if (player == null)
+        {
+            player = Object.FindFirstObjectByType<Player>();
+        }
         
         if (player != null)
         {
@@ -178,10 +219,89 @@ public class WolfCard : ComplexEventCard
         }
         else
         {
-            Debug.LogError("WolfCard: Player reference is null!");
+            Debug.LogError("[WolfCard] Player reference is null!");
         }
         
         // Wolf remains active after bunny statue sacrifice
+    }
+
+    /// <summary>
+    /// NEW METHOD: Asks WolfAI to despawn any wolf at the player's position
+    /// WolfAI handles finding the correct wolf and despawning it
+    /// </summary>
+    private void DespawnWolfAtPlayerPosition()
+    {
+        WolfAI wolfAI = Object.FindFirstObjectByType<WolfAI>();
+        
+        if (wolfAI == null)
+        {
+            Debug.LogError("[WolfCard] WolfAI not found in scene!");
+            return;
+        }
+        
+        // Find player position
+        if (player == null)
+        {
+            player = Object.FindFirstObjectByType<Player>();
+        }
+        
+        if (player == null)
+        {
+            Debug.LogError("[WolfCard] Player not found!");
+            return;
+        }
+        
+        Vector2Int playerPosition = player.GetPosition();
+        
+        // DEBUG: Log all wolf positions BEFORE despawn attempt
+        Debug.Log($"[WolfCard] 🐺 === WOLF POSITIONS BEFORE DESPAWN ATTEMPT ===");
+        Debug.Log($"[WolfCard] 🎯 Player is at: ({playerPosition.x}, {playerPosition.y})");
+        
+        var allWolves = wolfAI.GetWolves();
+        Debug.Log($"[WolfCard] 🐺 Total wolves in game: {allWolves.Count}");
+        
+        for (int i = 0; i < allWolves.Count; i++)
+        {
+            Wolf wolf = allWolves[i];
+            if (wolf != null)
+            {
+                Vector2Int wolfPos = wolf.GetPosition();
+                bool isDespawned = wolf.IsDespawned();
+                bool isAtPlayerPos = (wolfPos == playerPosition);
+                
+                string marker = isAtPlayerPos ? "⭐ THIS ONE!" : "";
+                string status = isDespawned ? "(DESPAWNED)" : "(ACTIVE)";
+                
+                Debug.Log($"[WolfCard] 🐺 Wolf {i}: Position ({wolfPos.x}, {wolfPos.y}) {status} {marker}");
+            }
+        }
+        
+        // Ask WolfAI to handle the despawn
+        bool success = wolfAI.DespawnWolfAtPosition(playerPosition);
+        
+        if (success)
+        {
+            Debug.Log($"[WolfCard] ✓ Successfully despawned wolf at position ({playerPosition.x}, {playerPosition.y})");
+        }
+        else
+        {
+            Debug.LogWarning($"[WolfCard] ⚠ No wolf found at position ({playerPosition.x}, {playerPosition.y}) to despawn!");
+        }
+        
+        // DEBUG: Log all wolf positions AFTER despawn attempt
+        Debug.Log($"[WolfCard] 🐺 === WOLF POSITIONS AFTER DESPAWN ATTEMPT ===");
+        for (int i = 0; i < allWolves.Count; i++)
+        {
+            Wolf wolf = allWolves[i];
+            if (wolf != null)
+            {
+                Vector2Int wolfPos = wolf.GetPosition();
+                bool isDespawned = wolf.IsDespawned();
+                string status = isDespawned ? "(DESPAWNED)" : "(ACTIVE)";
+                
+                Debug.Log($"[WolfCard] 🐺 Wolf {i}: Position ({wolfPos.x}, {wolfPos.y}) {status}");
+            }
+        }
     }
 }
 

@@ -10,7 +10,7 @@ public class CardVisual : MonoBehaviour
     
     private Card cardLogic;
     private bool isAdjacentToPlayer = false;
-    private bool isPlayerOnCard = false; // NEW: Track if player is standing on this card
+    private bool isPlayerOnCard = false;
     private BoardManager boardManager;
     private Player player;
 
@@ -22,7 +22,7 @@ public class CardVisual : MonoBehaviour
     [SerializeField] private Color unturnedOutlineColor = Color.white;
     [SerializeField] private Color walkableOutlineColor = Color.green;
     [SerializeField] private Color unwalkableOutlineColor = Color.red;
-    [SerializeField] private Color eventOutlineColor = Color.yellow; // NEW: Yellow for active events
+    [SerializeField] private Color eventOutlineColor = Color.yellow;
 
     [Header("Flip Animation Settings")]
     [SerializeField] private float flipHeight = 0.3f;
@@ -54,16 +54,6 @@ public class CardVisual : MonoBehaviour
 
         // Update outline based on player position
         UpdateOutline();
-
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        if (Physics.Raycast(ray, out hit))
-        {
-            if (hit.collider.gameObject == gameObject)
-            {
-                //Debug.Log($"Raycast hitting: {gameObject.name}");
-            }
-        }
     }
 
     private void CreateOutlineObject()
@@ -113,20 +103,17 @@ public class CardVisual : MonoBehaviour
     {
         if (isAnimating)
         {
-            //Debug.Log("[CardVisual] Ignoring click - card is animating");
             return;
         }
 
         if (UnityEngine.EventSystems.EventSystem.current != null &&
             UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
         {
-            //Debug.Log("[CardVisual] Ignoring click - pointer is over UI element");
             return;
         }
 
         if (IsAnyUIBlocking())
         {
-            //Debug.Log("[CardVisual] Ignoring click - UI is blocking interaction");
             return;
         }
 
@@ -136,17 +123,21 @@ public class CardVisual : MonoBehaviour
         Vector2Int cardPosition = GetGridPosition();
         if (cardPosition.x < 0 || cardPosition.y < 0)
         {
-            //Debug.LogWarning($"Invalid card position for {gameObject.name}");
             return;
         }
 
         if (player != null)
         {
-            bool moveSuccessful = player.TryMoveTo(cardPosition);
+            // FIX: This is a REAL player turn - wolves should move after
+            bool moveSuccessful = player.TryMoveTo(cardPosition, triggerWolfMovement: true);
 
             if (!moveSuccessful)
             {
-                //Debug.Log($"[CardVisual] Player attempted to move to ({cardPosition.x}, {cardPosition.y}) but movement was blocked");
+                Debug.Log($"[CardVisual] Player attempted to move to ({cardPosition.x}, {cardPosition.y}) but movement was blocked");
+            }
+            else
+            {
+                Debug.Log($"[CardVisual] ✅ Player moved to ({cardPosition.x}, {cardPosition.y}) - wolves will move next");
             }
         }
         else
@@ -282,7 +273,7 @@ public class CardVisual : MonoBehaviour
             return;
         }
 
-        // NEW: Show yellow outline if player is standing on card with active event
+        // Show yellow outline if player is standing on card with active event
         if (isPlayerOnCard && cardLogic.HasActiveEvent)
         {
             outlineObject.SetActive(true);
@@ -321,7 +312,7 @@ public class CardVisual : MonoBehaviour
         }
         else
         {
-            // NEW: Check if it's a RockCard and player has ClimbingRope
+            // Check if it's a RockCard and player has ClimbingRope
             if (cardLogic is RockCard)
             {
                 Player player = UnityEngine.Object.FindFirstObjectByType<Player>();
@@ -330,13 +321,11 @@ public class CardVisual : MonoBehaviour
                     ItemManager itemManager = player.GetItemManager();
                     if (itemManager != null && itemManager.HasItem(ItemManager.ItemType.ClimbingRope))
                     {
-                        // Show green outline - player CAN climb
                         return walkableOutlineColor;
                     }
                 }
             }
         
-            // Default: unwalkable (red)
             return unwalkableOutlineColor;
         }
     }
