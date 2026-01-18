@@ -4,6 +4,7 @@
 /// Wolf encounter event with minigame integration
 /// Both choices use minigames
 /// Fighting has a harder minigame than fleeing
+/// NEW: If player has Bunny Statue, third option to sacrifice it for safe escape
 /// </summary>
 public class WolfCard : ComplexEventCard
 {
@@ -38,6 +39,28 @@ public class WolfCard : ComplexEventCard
         {
             Debug.LogWarning("WolfCard: Could not load MinigameConfig_WolfFlee, will use random roll instead");
         }
+        
+        // NEW: CHOICE C - Bunny Statue (if player has it)
+        CheckForBunnyStatue();
+    }
+
+    /// <summary>
+    /// Checks if player has Bunny Statue and adds third choice if available
+    /// </summary>
+    private void CheckForBunnyStatue()
+    {
+        Player player = Object.FindFirstObjectByType<Player>();
+        if (player != null)
+        {
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null && itemManager.HasItem(ItemManager.ItemType.BunnyStatue))
+            {
+                choiceCText = "Hasenstatue opfern";
+                outcomeCText = "Du wirfst die Hasenstatue dem Wolf entgegen. Das Tier hält inne, schnuppert neugierig daran, bevor er sie aufnimmt und dir einen wissenden Blick zuwirft. Der Wolf kehrt dir den Rücken zu und verschwindet mit der Statue in der Dunkelheit.";
+                
+                Debug.Log("[WolfCard] Player has Bunny Statue - third choice available!");
+            }
+        }
     }
 
     protected override void OnChoiceASuccess()
@@ -46,7 +69,11 @@ public class WolfCard : ComplexEventCard
         
         if (player != null)
         {
-            player.modifyBloodpoints(5);
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                itemManager.ModifyPlayerBloodpoints(5);
+            }
         }
         else
         {
@@ -60,7 +87,11 @@ public class WolfCard : ComplexEventCard
         
         if (player != null)
         {
-            player.modifyHealth(-2);
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                itemManager.ModifyPlayerHealth(-2);
+            }
         }
         else
         {
@@ -81,7 +112,35 @@ public class WolfCard : ComplexEventCard
         
         if (player != null)
         {
-            player.modifyHealth(-1);
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                itemManager.ModifyPlayerHealth(-1);
+            }
+        }
+        else
+        {
+            Debug.LogError("WolfCard: Player reference is null!");
+        }
+    }
+
+    /// <summary>
+    /// NEW: Called when player sacrifices Bunny Statue
+    /// Player escapes safely without minigame, but loses the item
+    /// </summary>
+    protected override void OnChoiceC()
+    {
+        Debug.Log("Wolf Card - Choice C: Bunny Statue sacrificed for safe escape");
+        
+        if (player != null)
+        {
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                // Destroy Bunny Statue - player escapes without any damage or minigame
+                itemManager.DestroyItem(ItemManager.ItemType.BunnyStatue);
+                Debug.Log("[WolfCard] Bunny Statue destroyed - player escapes safely");
+            }
         }
         else
         {
@@ -89,3 +148,4 @@ public class WolfCard : ComplexEventCard
         }
     }
 }
+

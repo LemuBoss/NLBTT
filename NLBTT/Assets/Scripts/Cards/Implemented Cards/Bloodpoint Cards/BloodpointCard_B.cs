@@ -11,8 +11,10 @@ public class BloodpointCard_B : BloodPointEventCard //Codeword: Traveller
     public override void TriggerBloodPointEvent()
     {
         Debug.Log("Bloodpoint Event B (Traveller) triggered.");
+        
+        ItemManager itemManager = player.GetItemManager();
         int bloodpointCardsVisited = player.GetBloodpointCardsVisited() * 2;
-        player.modifyBloodpoints(bloodpointCardsVisited);
+        itemManager.ModifyPlayerBloodpoints(bloodpointCardsVisited);
         if (bloodpointCardsVisited > 0)
         {
             SetResultText($"Du bist weit gereist und hast viel gesehen. Die Geister des Waldes belohnen dein Wissen. \n(Erhalte Blutpunkte für jede Blutpunktekarte, auf der du warst)\n+{bloodpointCardsVisited} Blutpunkte erhalten.");

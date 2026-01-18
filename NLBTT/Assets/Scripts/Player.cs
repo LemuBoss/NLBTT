@@ -23,22 +23,19 @@ public class Player : MonoBehaviour
     [SerializeField] private bool showDebugLogs = true;
 
     [Header("Resources")] 
-    [SerializeField] private int totalHunger = 30;
-    [SerializeField] private int hungerCap = 30;
-    [SerializeField] private int hungerConsumption = 1;
-    private int starvationPenalty = 0;
+    [SerializeField] private int totalHunger = 40;
+    [SerializeField] private int hungerCap = 40;
+    [SerializeField] private int baseHungerConsumption = 1;
 
-    [SerializeField] private int totalStamina = 5;
-    [SerializeField] private int staminaCap = 5;
     [SerializeField] private int totalHealth = 5;
     [SerializeField] private int totalBloodpoints = 0;
+    
+    // NEW: Can heal self flag (controlled by items like Old Bread)
+    private bool canHealSelf = true;
     
     [Header("Altar Requirements")] 
     [SerializeField] private int AltarRequirements = 0;
     private int bloodpointsStoredInAltar = 0;
-
-    private int staminaPenaltyApplied = 0;
-    private bool starvationApplied = false;
 
     private int bloodpointCardsVisited = 0;
     
@@ -86,7 +83,7 @@ public class Player : MonoBehaviour
     {
         HandleResourceExchangeInput();
         HandleAltarInteraction();
-        HandleEventTrigger(); // NEW: Handle spacebar event triggering
+        HandleEventTrigger();
     }
 
     private void InitializePosition()
@@ -108,21 +105,16 @@ public class Player : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// NEW: Handles spacebar press to trigger events on the current card
-    /// </summary>
     private void HandleEventTrigger()
     {
         if (boardManager == null)
             return;
 
-        // Get the card the player is currently standing on
         Card currentCard = boardManager.GetCardAt(currentPosition.x, currentPosition.y);
 
         if (currentCard == null || !currentCard.HasActiveEvent)
-            return; // No active event on this card
+            return;
 
-        // Check for spacebar press using new Input System
         if (UnityEngine.InputSystem.Keyboard.current != null)
         {
             if (UnityEngine.InputSystem.Keyboard.current.spaceKey.wasPressedThisFrame)
@@ -131,7 +123,6 @@ public class Player : MonoBehaviour
                 currentCard.TriggerEvent();
             }
         }
-        // Fallback to old Input system
         else if (Input.GetKeyDown(KeyCode.Space))
         {
             LogDebug($"Triggering event on {currentCard.GetType().Name}");
@@ -165,9 +156,21 @@ public class Player : MonoBehaviour
         Debug.Log($"[Player] Checking walkability: Card type = {targetCard.GetType().Name}, CanMoveOnto = {targetCard.CanMoveOnto}, TurnedAround = {targetCard.TurnedAround}");
         if (!targetCard.CanMoveOnto)
         {
-            LogDebug($"Movement failed: Card at ({newPosition.x}, {newPosition.y}) [{targetCard.GetType().Name}] cannot be moved onto");
-            targetCard.OnPlayerEnter();
-            return false;
+            // Check if it's a RockCard and player has ClimbingRope
+            bool canClimbRock = (targetCard is RockCard) && 
+                                (itemManager != null) && 
+                                itemManager.HasItem(ItemManager.ItemType.ClimbingRope);
+    
+            if (!canClimbRock)
+            {
+                LogDebug($"Movement failed: Card at ({newPosition.x}, {newPosition.y}) [{targetCard.GetType().Name}] cannot be moved onto");
+                targetCard.OnPlayerEnter();
+                return false;
+            }
+            else
+            {
+                LogDebug($"Climbing onto RockCard using Climbing Rope!");
+            }
         }
 
         Card oldCard = boardManager.GetCardAt(currentPosition.x, currentPosition.y);
@@ -190,27 +193,12 @@ public class Player : MonoBehaviour
 
         targetCard.OnPlayerEnter();
 
-        modifyHunger(-hungerConsumption);
-        LogDebug($"Hunger reduced by 1. Current hunger: {totalHunger}");
+        // Calculate hunger cost based on terrain
+        int hungerCost = CalculateHungerCost(targetCard);
+        modifyHunger(-hungerCost);
+        LogDebug($"Hunger reduced by {hungerCost}. Current hunger: {totalHunger}");
 
-        if (isStarving())
-        {
-            LogDebug("Player is starving!");
-            applyStarvation();
-        }
-
-        if (isStaminaEmpty())
-        {
-            LogDebug("Player has run out of stamina!");
-            applyStaminaPenalty();
-        }
-
-        if (isStaminaFull())
-        {
-            LogDebug("Player stamina is full!");
-            removeStaminaPenalty();
-        }
-
+        // Check if satiated for healing
         if (isSatiated())
         {
             LogDebug("Player is fully satiated!");
@@ -230,12 +218,22 @@ public class Player : MonoBehaviour
             wolfAI.UpdateAllWolfVisibility();
         }
 
-        if (itemManager != null)
-        {
-            itemManager.DecrementFlashlightCooldown();
-        }
-
         return true;
+    }
+
+    /// <summary>
+    /// Calculates hunger cost based on the terrain card
+    /// </summary>
+    private int CalculateHungerCost(Card card)
+    {
+        if (card is TerrainCard terrainCard)
+        {
+            // Terrain cards have their own hunger modifier
+            return terrainCard.HungerModifier;
+        }
+        
+        // Default cost for non-terrain cards
+        return baseHungerConsumption;
     }
 
     public Vector2Int GetPosition()
@@ -300,29 +298,24 @@ public class Player : MonoBehaviour
         LogDebug($"Player chip moved to world position {newChipPosition}");
     }
 
-    // Resource Management //
+    // Resource Management
 
     public void modifyHunger(int amount)
     {
         totalHunger = Mathf.Clamp(totalHunger + amount, 0, hungerCap);
         LogDebug($"Hunger modified by {amount}. Current hunger: {totalHunger}/{hungerCap}");
+    }
 
-        if (amount > 0 && itemManager != null)
-        {
-            itemManager.OnFoodGained(amount);
-        }
+    public void ModifyHunger(int amount)
+    {
+        totalHunger = Mathf.Clamp(totalHunger + amount, 0, hungerCap);
+        LogDebug($"Hunger modified by {amount}. Current hunger: {totalHunger}/{hungerCap}");
     }
 
     public void modifyHealth(int amount)
     {
-        int oldHealth = totalHealth;
         totalHealth = Mathf.Max(0, totalHealth + amount);
         LogDebug($"Health modified by {amount}. Current health: {totalHealth}");
-
-        if (amount < 0 && itemManager != null)
-        {
-            itemManager.OnHealthLost(-amount);
-        }
 
         if (totalHealth <= 0)
         {
@@ -331,38 +324,34 @@ public class Player : MonoBehaviour
         }
     }
 
-    public void modifyStamina(int amount)
+    public void ModifyHealth(int amount)
     {
-        totalStamina = Mathf.Clamp(totalStamina + amount, 0, staminaCap);
-        LogDebug($"Stamina modified by {amount}. Current stamina: {totalStamina}/{staminaCap}");
+        totalHealth = Mathf.Max(0, totalHealth + amount);
+        LogDebug($"Health modified by {amount}. Current health: {totalHealth}");
+
+        if (totalHealth <= 0)
+        {
+            LogDebug("Player has died!");
+            OnPlayerDeath();
+        }
     }
 
     public void modifyBloodpoints(int amount)
     {
-        int oldBloodpoints = totalBloodpoints;
         totalBloodpoints = Mathf.Max(0, totalBloodpoints + amount);
         LogDebug($"Bloodpoints modified by {amount}. Current bloodpoints: {totalBloodpoints}");
+    }
 
-        if (amount > 0 && itemManager != null)
-        {
-            itemManager.OnBloodpointsGained(amount);
-        }
+    public void ModifyBloodpoints(int amount)
+    {
+        totalBloodpoints = Mathf.Max(0, totalBloodpoints + amount);
+        LogDebug($"Bloodpoints modified by {amount}. Current bloodpoints: {totalBloodpoints}");
     }
 
     public void modifyBloodpointCardVisited(int amount)
     {
         bloodpointCardsVisited += amount;
         LogDebug($"{amount} bloodpoint card visited. Bloodpoint cards visited: {bloodpointCardsVisited}");
-    }
-
-    public bool isStaminaEmpty()
-    {
-        return totalStamina <= 0;
-    }
-
-    public bool isStaminaFull()
-    {
-        return totalStamina == staminaCap;
     }
 
     public bool isStarving()
@@ -373,24 +362,6 @@ public class Player : MonoBehaviour
     public bool isSatiated()
     {
         return totalHunger == hungerCap;
-    }
-
-    public void applyStaminaPenalty()
-    {
-        hungerConsumption = 2;
-    }
-
-    public void removeStaminaPenalty()
-    {
-        hungerConsumption = 1;
-    }
-    
-    public void applyStarvation()
-    {
-        if (totalHealth > 1)
-        {
-            totalHealth -= 1;
-        }
     }
 
     public void applySatiationBonus()
@@ -436,6 +407,26 @@ public class Player : MonoBehaviour
         else
         {
             LogDebug($"Tried to exchange 1 Health for 5 Bloodpoints, but Player is dead.");
+        }
+    }
+
+    private void exchangeFoodForHealth()
+    {
+        if (!canHealSelf)
+        {
+            Debug.Log("[Player] Cannot heal self - blocked by item effect (Old Bread)");
+            return;
+        }
+
+        if (totalHealth < 5 && totalHunger >= 5)
+        {
+            totalHunger -= 5;
+            totalHealth += 1;
+            Debug.Log("[Player] Exchanged 5 Food for 1 Health");
+        }
+        else
+        {
+            Debug.Log("[Player] Cannot exchange Food for Health - either Health is full or not enough Food");
         }
     }
 
@@ -525,20 +516,6 @@ public class Player : MonoBehaviour
         exchangeFoodForHealth();
     }
 
-    private void exchangeFoodForHealth()
-    {
-        if (totalHealth < 5 && totalHunger > 0)
-        {
-            totalHunger -= 5;
-            totalHealth += 1;
-            Debug.Log("[Player] Exchanged 5 Food for 1 Health");
-        }
-        else
-        {
-            Debug.Log("[Player] Cannot exchange Food for Health - either Health is full or not enough Food");
-        }
-    }
-
     public void DepositBloodpointsToAltar()
     {
         transferBloodpointsIntoAltar();
@@ -587,23 +564,20 @@ public class Player : MonoBehaviour
 
     public void ResetToStartingValues()
     {
-        totalHunger = hungerCap;
-        hungerCap = hungerCap;
-        totalStamina = 5;
-        staminaCap = 5;
+        totalHunger = 30;
+        hungerCap = 30;
         totalHealth = 5;
         totalBloodpoints = 0;
         bloodpointsStoredInAltar = 0;
         bloodpointCardsVisited = 0;
 
-        staminaPenaltyApplied = 0;
-        starvationApplied = false;
+        canHealSelf = true;
 
         lastBloodPointCardVisited = null;
 
         if (itemManager != null)
         {
-            itemManager.ResetInventory();
+            itemManager.ResetItemStates();
         }
 
         LogDebug("Player resources reset to starting values");
@@ -614,6 +588,33 @@ public class Player : MonoBehaviour
         return itemManager;
     }
 
+    public bool CanHealSelf() => canHealSelf;
+
+    public void SetCanHealSelf(bool value)
+    {
+        canHealSelf = value;
+        LogDebug($"Can heal self set to: {value}");
+    }
+
+    public void SetHealth(int value)
+    {
+        totalHealth = value;
+        LogDebug($"Health set to: {totalHealth}");
+    }
+
+    public void SetBloodpoints(int value)
+    {
+        totalBloodpoints = value;
+        LogDebug($"Bloodpoints set to: {totalBloodpoints}");
+    }
+
+    public void ModifyHungerCap(int amount)
+    {
+        hungerCap = Mathf.Max(0, hungerCap + amount);
+        totalHunger = Mathf.Clamp(totalHunger, 0, hungerCap);
+        LogDebug($"Hunger cap modified by {amount}. New cap: {hungerCap}, current hunger: {totalHunger}");
+    }
+
     private void LogDebug(string message)
     {
         if (showDebugLogs)
@@ -622,12 +623,17 @@ public class Player : MonoBehaviour
         }
     }
     
+    // Getters
     public int GetHunger() => totalHunger;
     public int GetHungerCap() => hungerCap;
-    public int GetStamina() => totalStamina;
-    public int GetStaminaCap() => staminaCap;
     public int GetHealth() => totalHealth;
     public int GetBloodpoints() => totalBloodpoints;
     public int GetBloodpointCardsVisited() => bloodpointCardsVisited;
     public int GetBloodpointsInAltar() => bloodpointsStoredInAltar;
+    
+    // Legacy compatibility method (returns 0 since stamina is removed)
+    public int GetStamina() => 0;
+    public int GetStaminaCap() => 0;
 }
+
+

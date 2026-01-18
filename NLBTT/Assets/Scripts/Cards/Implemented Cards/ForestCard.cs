@@ -6,7 +6,6 @@ public class ForestCard : TerrainCard
     {
         title = "Wald";
         canMoveOnto = true;
-        staminaModifier = -1; 
+        hungerModifier = 2; // Double cost
     }
-
 }

@@ -17,7 +17,7 @@ public class BerryCard : ComplexEventCard
         choiceAText = "Pflücken";
         choiceASuccessProbability = 0.7f; // Fallback if minigame not available
         outcomeASuccessText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst sorgfältig die richtigen Beeren und verspeist sie ohne dich zu vergiften. (+15 Nahrung)";
-        outcomeAFailureText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst hastig und erwischst auch giftige Beeren, leidest anschließend unter starkem Erbrechen. (-1 Gesundheit, -5 Nahrung)";
+        outcomeAFailureText = "Das Knurren in deinem Magen übertönt die Stimme der Vorsichtig in dir. Du pflückst hastig und verletzt dich an den Stacheln der Ranken. (-1 Gesundheit)";
         
         // Load minigame config for Choice A
         choiceAMinigameConfig = Resources.Load<MinigameConfig>("MinigameConfigs/MinigameConfig_BerryPicking");
@@ -38,7 +38,11 @@ public class BerryCard : ComplexEventCard
         Debug.Log("Berry Card - Choice A Success: Berries picked carefully, +15 food");
         if (player != null)
         {
-            player.modifyHunger(15);
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                itemManager.ModifyPlayerHunger(15);
+            }
         }
         else
         {
@@ -49,10 +53,14 @@ public class BerryCard : ComplexEventCard
     protected override void OnChoiceAFailure()
     {
         Debug.Log("Berry Card - Choice A Failure: Picked wrong berries, -1 health, -5 food");
+        
         if (player != null)
         {
-            player.modifyHunger(-5);
-            player.modifyHealth(-1);
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                itemManager.ModifyPlayerHealth(-1);
+            }
         }
         else
         {
@@ -71,7 +79,11 @@ public class BerryCard : ComplexEventCard
         Debug.Log("Berry Card - Choice B Failure: Player gives in to hunger");
         if (player != null)
         {
-            player.modifyHunger(10);
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
+            {
+                itemManager.ModifyPlayerHunger(10);
+            }
         }
         else
         {
@@ -99,3 +111,4 @@ public class BerryCard : ComplexEventCard
         Debug.Log("Berry Card: Player didn't pick berries, event remains open");
     }
 }
+

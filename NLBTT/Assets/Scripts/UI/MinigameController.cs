@@ -463,11 +463,11 @@ public class MinigameController : MonoBehaviour
     {
         if (!isActive)
             return;
-        
+    
         isActive = false;
-        
+    
         LogDebug($"Minigame ended: {(success ? "SUCCESS" : "FAILURE")}");
-        
+    
         // Destroy all remaining circles immediately
         foreach (var circle in activeCircles)
         {
@@ -475,7 +475,7 @@ public class MinigameController : MonoBehaviour
                 Destroy(circle.gameObject);
         }
         activeCircles.Clear();
-        
+    
         // Also destroy any orphaned circles in the container (safety cleanup)
         if (circleContainer != null)
         {
@@ -484,18 +484,21 @@ public class MinigameController : MonoBehaviour
                 Destroy(child.gameObject);
             }
         }
-        
+    
         // Clear tracking lists
         occupiedPositions.Clear();
         occupiedRadii.Clear();
 
-        
+        // **ADD THIS LINE - Hide the minigame UI**
+        if (uiManager != null)
+            uiManager.HideMinigame();
+    
         // Trigger events
         if (success)
             onMinigameSuccessCallback?.Invoke();
         else
             onMinigameFailureCallback?.Invoke();
-        
+    
         // Clear callbacks
         onMinigameSuccessCallback = null;
         onMinigameFailureCallback = null;

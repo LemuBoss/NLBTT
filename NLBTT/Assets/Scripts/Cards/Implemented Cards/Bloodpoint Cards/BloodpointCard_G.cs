@@ -15,6 +15,7 @@ public class BloodpointCard_G : BloodPointEventCard
     public override void TriggerBloodPointEvent()
     {
         Debug.Log("Bloodpoint Event G triggered - Altar Distance Bonus");
+        ItemManager itemManager = player.GetItemManager();
         
         // Get the BoardManager to access the grid
         BoardManager boardManager = Object.FindFirstObjectByType<BoardManager>();
@@ -33,7 +34,7 @@ public class BloodpointCard_G : BloodPointEventCard
         if (altarPos == new Vector2Int(-1, -1)) // Sentinel value for not found
         {
             Debug.LogWarning("BloodpointCard_G: No Altar card found on the board!");
-            player.modifyBloodpoints(1); // Fallback bonus
+            itemManager.ModifyPlayerBloodpoints(1); // Fallback bonus
             return;
         }
         
@@ -46,7 +47,7 @@ public class BloodpointCard_G : BloodPointEventCard
         // You can adjust this formula as needed
         int bloodpointsGained = distance; 
         
-        player.modifyBloodpoints(bloodpointsGained);
+        itemManager.ModifyPlayerBloodpoints(bloodpointsGained);
         Debug.Log($"Player gained {bloodpointsGained} bloodpoints based on Altar distance");
 
         if (bloodpointsGained < 3)

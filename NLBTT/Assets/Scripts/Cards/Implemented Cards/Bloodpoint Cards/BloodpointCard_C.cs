@@ -17,12 +17,13 @@ public class BloodpointCard_C : BloodPointEventCard // Repeater
         Debug.Log("Bloodpoint Event C (Repeater) triggered.");
         
         BloodPointEventCard lastCard = player.GetLastBloodPointCardVisited();
+        ItemManager itemManager = player.GetItemManager();
         
         if (lastCard == null)
         {
             // This is the first bloodpoint card visited
             Debug.Log("No previous bloodpoint card visited. Granting 1 bloodpoint.");
-            player.modifyBloodpoints(1);
+            itemManager.ModifyPlayerBloodpoints(1);
             SetResultText($"Der Ort kommt dir fremd vor; gar nichts ist dir vertraut. In deinen Erinnerungen nichts als Nebel. \n(Wiederhole den Effekt der letzten Blutpunktekarte)\n+1 Blutpunkt erhalten.");
             Debug.Log("Player gained 1 bloodpoint (first card bonus)");
         }
@@ -30,7 +31,7 @@ public class BloodpointCard_C : BloodPointEventCard // Repeater
         {
             // Edge case: somehow this card is the last visited (shouldn't happen in normal play)
             Debug.LogWarning("BloodpointCard_C is trying to repeat itself. Granting 1 bloodpoint instead.");
-            player.modifyBloodpoints(1);
+            itemManager.ModifyPlayerBloodpoints(1);
         }
         else
         {

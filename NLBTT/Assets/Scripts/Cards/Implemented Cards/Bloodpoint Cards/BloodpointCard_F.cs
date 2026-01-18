@@ -11,11 +11,12 @@ public class BloodpointCard_F : BloodPointEventCard //Codeword: Martyr
     public override void TriggerBloodPointEvent()
     {
         Debug.Log("Bloodpoint Event F (Martyr) triggered.");
+        ItemManager itemManager = player.GetItemManager();
         
         if (player.GetHealth() <= 1)
         {
             int bloodpointsMuliplied = player.GetBloodpoints() * 2;
-            player.modifyBloodpoints(bloodpointsMuliplied);
+            itemManager.ModifyPlayerBloodpoints(bloodpointsMuliplied);
             Debug.Log($"Player received {bloodpointsMuliplied} bloodpoints");
             SetResultText($"Deine Schmerzen, Musik in den Ohren der Geister. Deine Hingabe wird reichlich belohnt. \n(Erhalte Blutpunkte für niedrige Gesundheit)\n+{bloodpointsMuliplied} Blutpunkte erhalten.");
         }

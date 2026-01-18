@@ -13,7 +13,6 @@ public class WolfdenCard : Card
         title = "Wolf Den";
         canMoveOnto = true;
         blocksLineOfSight = false;
-        staminaModifier = 1; // Normal rest bonus
     }
 
     /// <summary>
@@ -40,3 +39,4 @@ public class WolfdenCard : Card
         Debug.Log($"[WolfdenCard] Player entered wolf den");
     }
 }
+

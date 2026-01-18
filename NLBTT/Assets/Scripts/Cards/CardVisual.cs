@@ -321,6 +321,22 @@ public class CardVisual : MonoBehaviour
         }
         else
         {
+            // NEW: Check if it's a RockCard and player has ClimbingRope
+            if (cardLogic is RockCard)
+            {
+                Player player = UnityEngine.Object.FindFirstObjectByType<Player>();
+                if (player != null)
+                {
+                    ItemManager itemManager = player.GetItemManager();
+                    if (itemManager != null && itemManager.HasItem(ItemManager.ItemType.ClimbingRope))
+                    {
+                        // Show green outline - player CAN climb
+                        return walkableOutlineColor;
+                    }
+                }
+            }
+        
+            // Default: unwalkable (red)
             return unwalkableOutlineColor;
         }
     }

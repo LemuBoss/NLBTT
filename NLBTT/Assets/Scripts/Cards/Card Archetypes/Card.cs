@@ -2,8 +2,6 @@ using UnityEngine;
 
 /// <summary>
 /// Base class for all cards in the game
-/// By default, all cards restore 1 stamina when entered (representing rest)
-/// Subclasses can override staminaModifier to change this behavior
 /// </summary>
 public abstract class Card
 {
@@ -12,8 +10,6 @@ public abstract class Card
     protected bool blocksLineOfSight = false;
     protected bool turnedAround = true;
     protected bool allowedForShuffle = true;
-
-    protected int staminaModifier = 1; // Default: +1 stamina (rest)
 
     // Event tracking
     protected bool hasEvent = false;
@@ -37,22 +33,6 @@ public abstract class Card
     public virtual void OnPlayerEnter()
     {
         hasPlayer = true;
-
-        // Apply stamina modifier
-        Player player = Object.FindFirstObjectByType<Player>();
-        if (player != null && staminaModifier != 0)
-        {
-            player.modifyStamina(staminaModifier);
-
-            if (staminaModifier > 0)
-            {
-                Debug.Log($"[{this.GetType().Name}] Player rested, gained {staminaModifier} stamina. Current: {player.GetStamina()}/{player.GetStaminaCap()}");
-            }
-            else
-            {
-                Debug.Log($"[{this.GetType().Name}] Difficult terrain, lost {Mathf.Abs(staminaModifier)} stamina. Current: {player.GetStamina()}/{player.GetStaminaCap()}");
-            }
-        }
 
         // Check if wolf is already here
         CheckForWolfPlayerEncounter();
@@ -163,3 +143,5 @@ public abstract class Card
     public bool HasWolf() => wolfOnCard != null;
     public Wolf GetWolfOnCard() => wolfOnCard;
 }
+
+

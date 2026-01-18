@@ -11,8 +11,10 @@ public class BloodpointCard_D : BloodPointEventCard //Randomizer
     public override void TriggerBloodPointEvent()
     {
         Debug.Log("Bloodpoint Event D (Randomizer) triggered.");
+        
+        ItemManager itemManager = player.GetItemManager();
         int randomizedPoints = Random.Range(-5, 10);
-        player.modifyBloodpoints(randomizedPoints);
+        itemManager.ModifyPlayerBloodpoints(randomizedPoints);
         if (randomizedPoints > 0)
         {
             SetResultText($"Die dunklen Geister des Waldes treiben ihre Spielchen mit dir. Sie sind dir wohlgesonnen, und belohnen dein Vertrauen. \n(Erhalte eine zufällige Menge an Blutpunkten)\n+{randomizedPoints} Blutpunkte erhalten.");

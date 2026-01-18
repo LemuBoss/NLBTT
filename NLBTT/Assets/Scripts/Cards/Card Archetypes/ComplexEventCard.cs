@@ -16,6 +16,10 @@ public abstract class ComplexEventCard : Card
     protected string choiceAText;
     protected string choiceBText;
     
+    // CHOICE C: Optional third choice (e.g. for items like Bunny Statue)
+    protected string choiceCText = null; // null = no third choice available
+    protected string outcomeCText = "";
+    
     // Outcome texts
     protected string outcomeASuccessText;
     protected string outcomeAFailureText;
@@ -136,6 +140,46 @@ public abstract class ComplexEventCard : Card
             
             ExecuteChoiceBOutcome(isSuccess);
         }
+    }
+    
+    /// <summary>
+    /// Returns the text for Choice C button (empty if not available)
+    /// </summary>
+    public virtual string GetChoiceCText()
+    {
+        return choiceCText ?? "";
+    }
+
+    /// <summary>
+    /// Returns true if this event has a third choice available
+    /// </summary>
+    public virtual bool HasChoiceC()
+    {
+        return !string.IsNullOrEmpty(choiceCText);
+    }
+
+    /// <summary>
+    /// Selects Choice C and triggers its outcome
+    /// Choice C never uses minigames - instant effect only
+    /// </summary>
+    public virtual void SelectChoiceC()
+    {
+        Debug.Log($"{GetType().Name} - Choice C selected: {choiceCText}");
+    
+        lastOutcomeText = outcomeCText;
+        OnChoiceC();
+    
+        // Statt "eventCompleted = true" verwende:
+        CloseEvent(); // Diese Methode setzt isEventClosed = true
+    }
+
+    /// <summary>
+    /// Override this in subclasses to define what happens when Choice C is selected
+    /// </summary>
+    protected virtual void OnChoiceC()
+    {
+        // Default: do nothing
+        Debug.Log($"{GetType().Name} - Choice C executed");
     }
 
     /// <summary>
@@ -258,6 +302,8 @@ public abstract class ComplexEventCard : Card
     public string GetChoiceAText() => choiceAText;
     public string GetChoiceBText() => choiceBText;
     public string GetLastOutcomeText() => lastOutcomeText;
+    
+    
     
     // Check if choices use minigames
     public bool ChoiceAUsesMinigame() => choiceAMinigameConfig != null;

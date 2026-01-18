@@ -6,7 +6,7 @@ public class SwampCard : TerrainCard
     {
         title = "Sumpf";
         canMoveOnto = true;
-        staminaModifier = -2; 
+        hungerModifier = 3; // Triple cost
     }
-    
 }
+

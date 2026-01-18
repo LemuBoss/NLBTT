@@ -39,66 +39,42 @@ public class MinigameModifiers
     }
     
     /// <summary>
-    /// Example: Apply modifiers based on player state
+    /// Apply modifiers based on player state
     /// Call this from your Player class or event system
     /// </summary>
     public static MinigameModifiers FromPlayerState(Player player)
     {
         MinigameModifiers mods = new MinigameModifiers();
-        
+    
         if (player == null)
             return mods;
-        
+    
         ItemManager itemManager = player.GetItemManager();
-        
-        // Example: Check for specific items
+    
+        // Apply item-based modifiers
         if (itemManager != null)
         {
-            // Lucky charm reduces fake circles
-            //if (itemManager.HasItem("LuckyCharm"))
-            //{
-            //    mods.fakeCircleCountModifier = -2;
-            //}
-            
-            // Time crystal slows down timers
-            //if (itemManager.HasItem("TimeCrystal"))
-            //{
-            //    mods.timerDrainMultiplier = 0.7f;
-            //}
-            
-            // Blessed amulet inverts fake circles
-            //if (itemManager.HasItem("BlessedAmulet"))
-            //{
-            //    mods.invertFakeCircles = true;
-            //}
-            
-            // Steady hands reduce penalties
-            //if (itemManager.HasItem("SteadyHands"))
-            //{
-            //    mods.misclickPenaltyMultiplier = 0.5f;
-            //}
+            MinigameModifiers itemMods = itemManager.GetMinigameModifiers();
+            mods = Combine(mods, itemMods);
         }
-        
-        // Example: Check for debuffs
-        
-        // Starving causes drift
+    
+        // Apply player state modifiers
+    
+        // Starving causes drift AND faster timers
         if (player.isStarving())
         {
             mods.enableDrift = true;
+            mods.timerDrainMultiplier *= 1.3f;
+            Debug.Log("[MinigameModifiers] Player is starving: Drift enabled, timer 30% faster");
         }
-        
-        // Low stamina speeds up timers
-        if (player.isStaminaEmpty())
-        {
-            mods.timerDrainMultiplier = 1.3f;
-        }
-        
+    
         // Low health increases penalties
         if (player.GetHealth() <= 2)
         {
-            mods.misclickPenaltyMultiplier = 1.5f;
+            mods.misclickPenaltyMultiplier *= 1.5f;
+            Debug.Log("[MinigameModifiers] Low health: Misclick penalty 50% higher");
         }
-        
+    
         return mods;
     }
     
@@ -141,3 +117,5 @@ public class MinigameModifiers
                $"Drift={enableDrift}";
     }
 }
+
+

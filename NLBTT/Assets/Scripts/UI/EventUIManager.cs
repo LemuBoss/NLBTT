@@ -5,7 +5,7 @@ using TMPro;
 /// <summary>
 /// Manages the UI windows for ComplexEventCard interactions
 /// Displays event choices and outcomes to the player
-/// Now supports minigame integration
+/// Supports minigame integration and optional third choice
 /// </summary>
 public class EventUIManager : MonoBehaviour
 {
@@ -18,8 +18,10 @@ public class EventUIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI eventDescriptionText;
     [SerializeField] private Button choiceAButton;
     [SerializeField] private Button choiceBButton;
+    [SerializeField] private Button choiceCButton; // NEW: Optional third choice
     [SerializeField] private TextMeshProUGUI choiceAButtonText;
     [SerializeField] private TextMeshProUGUI choiceBButtonText;
+    [SerializeField] private TextMeshProUGUI choiceCButtonText; // NEW
     
     [Header("Outcome Panel Elements")]
     [SerializeField] private TextMeshProUGUI outcomeText;
@@ -46,6 +48,12 @@ public class EventUIManager : MonoBehaviour
         if (choiceBButton != null)
             choiceBButton.onClick.AddListener(OnChoiceBClicked);
         
+        if (choiceCButton != null)
+        {
+            choiceCButton.onClick.AddListener(OnChoiceCClicked);
+            choiceCButton.gameObject.SetActive(false); // Hidden by default
+        }
+        
         if (continueButton != null)
             continueButton.onClick.AddListener(OnContinueClicked);
         
@@ -56,6 +64,7 @@ public class EventUIManager : MonoBehaviour
     
     /// <summary>
     /// Shows the event choice window with the given ComplexEventCard's information
+    /// Automatically shows/hides third choice button based on availability
     /// </summary>
     public void ShowEventChoice(ComplexEventCard eventCard)
     {
@@ -81,6 +90,22 @@ public class EventUIManager : MonoBehaviour
         
         if (choiceBButtonText != null)
             choiceBButtonText.text = eventCard.GetChoiceBText();
+        
+        // NEW: Handle optional third choice
+        if (choiceCButton != null)
+        {
+            string choiceCText = eventCard.GetChoiceCText();
+            bool hasChoiceC = !string.IsNullOrEmpty(choiceCText);
+            
+            choiceCButton.gameObject.SetActive(hasChoiceC);
+            
+            if (hasChoiceC && choiceCButtonText != null)
+            {
+                choiceCButtonText.text = choiceCText;
+            }
+            
+            Debug.Log($"[EventUIManager] Choice C available: {hasChoiceC}");
+        }
         
         // Show the choice panel
         if (eventChoicePanel != null)
@@ -158,6 +183,28 @@ public class EventUIManager : MonoBehaviour
     }
     
     /// <summary>
+    /// NEW: Called when the player clicks Choice C button (optional third choice)
+    /// </summary>
+    private void OnChoiceCClicked()
+    {
+        if (!waitingForChoice || currentEventCard == null)
+            return;
+        
+        Debug.Log("[EventUIManager] Player selected Choice C");
+        
+        // Hide choice panel
+        if (eventChoicePanel != null)
+            eventChoicePanel.SetActive(false);
+        
+        waitingForChoice = false;
+        
+        // Choice C never uses minigames (instant effect)
+        currentEventCard.SelectChoiceC();
+        string outcomeMessage = currentEventCard.GetLastOutcomeText();
+        ShowOutcome(outcomeMessage);
+    }
+    
+    /// <summary>
     /// Shows the outcome window with the result text
     /// Called directly for non-minigame choices
     /// </summary>
@@ -202,7 +249,7 @@ public class EventUIManager : MonoBehaviour
         // Clear current event
         currentEventCard = null;
         
-        // Resume game (you may want to notify other systems here)
+        // Resume game
         ResumeGame();
     }
     
@@ -216,6 +263,9 @@ public class EventUIManager : MonoBehaviour
         
         if (eventOutcomePanel != null)
             eventOutcomePanel.SetActive(false);
+        
+        if (choiceCButton != null)
+            choiceCButton.gameObject.SetActive(false);
         
         currentEventCard = null;
         waitingForChoice = false;
@@ -234,12 +284,10 @@ public class EventUIManager : MonoBehaviour
     
     /// <summary>
     /// Called when continuing from an outcome - resume game logic
-    /// Override or extend this to add your own game resume logic
     /// </summary>
     private void ResumeGame()
     {
-        // Add any game resume logic here
-        // For example: re-enable player movement, unpause time, etc.
         Debug.Log("[EventUIManager] Game resumed after event");
     }
 }
+

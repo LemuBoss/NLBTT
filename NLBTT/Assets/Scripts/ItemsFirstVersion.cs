@@ -13,15 +13,15 @@ public class ItemManager : MonoBehaviour
     {
         Flashlight,      // Taschenlampe
         BunnyStatue,     // Hasenstatue
-        Knife,           // Messer
-        JarOfNeedles,    // Nadeln im Glas
-        DriedDragonfly,  // Getrocknete Libelle
-        OldBread,        // Altes Brot
-        PileOfAshes,     // Haufen Asche
-        CrowFeather,     // Krähenfeder
-        BearClaw,        // Bärenkralle
-        EmergencyFood,   // Notrationen
-        ObsidianShard    // Obsidiansplitter
+        Knife,           // Messer - Blutpunkte bei Gewinn
+        JarOfNeedles,    // Nadeln im Glas - Blutpunkte
+        DriedDragonfly,  // Getrocknete Libelle - Blutpunkte
+        OldBread,        // Altes Brot - Blutpunkte bei Gesundheitverlust
+        PileOfAshes,     // Haufen Asche - Blutpunkte verdoppeln/verlieren
+        CrowFeather,     // Krähenfeder - Ausdauer erhöhen
+        BearClaw,        // Bärenkralle - Blutpunkte bei Itemzerstörung
+        EmergencyFood,   // Notrationen - Blutpunkte bei Essensgewinn
+        ObsidianShard    // Obsidiansplitter - Wiederbelebung
     }
 
     [Header("Inventory Settings")]
@@ -505,6 +505,58 @@ public class ItemManager : MonoBehaviour
                 return "";
         }
     }
+
+    // Flashlight verändert sich (Wolfsfiguren sind ständig sichtbar)
+    // Zerstörungseffekt: Keins
+
+    // Hasenstatue bleibt größtenteils gleich (Wenn man die Hasenstatue besitzt, erscheint beim Wolfevent ein neues Entscheidungsfeld. Dieses Entscheidungsfeld löst kein Minigame aus, sondern führt zur Erfolgreichen Flucht) -- Müsste mit ComplexEventUI und dem Wolfevent interagieren
+    // Zerstörungseffekt: Füllt Nahrung komplett auf
+
+    // Messer ändert sich (Minigame, also Wolfkampf und Beerenpflücken, wird einfacher) -- Einfach nur mit MinigameConfigs
+    // Zerstörungseffekt: Keins
+
+    // Nadeln im Glas (Bleibt gleich, 1+ Blutpunkt pro Waldkarte in derselben Reihe, in der ein Blutpunkte Event ausgelöst wird)
+    // Zerstörungseffekt: -1 Nahrung pro Waldkarte in derselben Reihe
+
+    // Getrocknete Libelle (Bleibt gleich, 2+ Blutpunkte pro Sumpfkarte in derselben Spalte, in der ein Blutpunkte Event ausgelöst wird)
+    // Zerstörungseffekt: -1 Nahrung pro Sumpfkarte in derselben Spalte
+
+    // Altes Brot (+5 Blutpunkte pro verlorenem Leben, man darf sich aber selbst nicht mehr heilen) -- Müsste mit Player interagieren
+    // Zerstörungseffekt: Man darf sich wieder selber heilen. +10 Nahrung, +3 Gesundheit, verliert die Hälfte der getragenen Blutpunkte
+
+    // Haufen Asche (Jeder Blutpunkte-Gewinn ist verdoppelt, aber man verliert alle Blutpunkte, die man bei sich trägt, sobald man ein Leben verliert) -- Müsste mit Player interagieren
+    // Zerstörungseffekt: -2 Gesundheit (kann nicht auf 0 fallen). Dies triggert den Effekt der Asche nicht nochmal.
+
+    // Krähenfeder (Man hinterlässt keine Geruchsspur mehr, aber Kämpfe mit Wölfen werden härter) -- Muss mit Player und Wölfen interagieren
+    // Zerstörungseffekt: Keins
+
+    // Bärenkralle (Solange man die Bärenkralle bei sich trägt, erhält man ENTWEDER 5 Blutpunkte, oder verliert 1 Leben, eingeschlossen dieses Item. Der Effekt ist somit zufällig.) -- Müsste mit Player interagieren
+    // Zerstörungseffekt: +5 Blutpunkte oder -1 Leben
+
+    // Notrationen (Das maximale Essen, das man bei sich tragen kann, wird um 10 erhöht) -- Muss mit Player interagieren
+    // Zerstörungseffekt: +10 Nahrung
+
+    // Obsidianscherbe (Fällt man auf 0 Gesundheit, erhält man eine zweite Chance und die Gesundheit wird wieder aufgefüllt. Für den Rest der Runde werden jedoch alle Blutpunktgewinne halbiert. Danach zerstört sich dieses Item von selbst) -- Muss mit Player interagieren
+    // Zerstörungseffekt: Keins
+
+    // Kletterseil (Man kann Felskarten betreten. Das Betreten von Felskarten verbraucht 4 Essen) -- Muss mit Player, BoardManager und CardVisual interagieren
+    // Zerstörungseffekt: Keins
+
+    // Ungeöffneter Brief (Neues Item: es gibt pro Karte zwei Händler. Man erhält den Brief von einem Händler, und muss ihn zum jeweils anderen Händler bringen, ohne ein einziges Event (Beeren, Wolf, Altes Haus, Blutpunkte), auszulösen.
+    // Schafft man dies, erhält man als Belohnung 2 Blutpunkte pro Karte, die zwischen den beiden Händlern liegt (Funktion dafür existiert bereits), und Nahrung wird aufgefüllt. 
+    // Gerät man in ein Event, zerstört sich der Brief von selbst.
+
+    // Händler: Der Händler spawnt mit drei Itemslots. Die Items sind zufällig. Kauft man sich ein Item, verschwinden die anderen beiden Items, die nicht gekauft wurden. Die Items
+    // werde wieder per Zufall aufgefüllt, es werden jedoch nur noch zwei angeboten. Kauft man sich wieder ein Item, bleibt nur noch eines über; hat man alle Items aufgekauft, verschwindet
+    // der Händler für ein paar Züge. Verkauft man Gegenstände beim Händler, werden die maximalen Itemslots wieder hergestellt. 
+
+    // Die Schwierigkeit in der Implementation darin liegt, dass die Items Einfluss auf sehr viele Klassen und Vorgänge besitzen. Alle Blutpunkte, die erhalten werden, müssen durch die
+    // ItemManager-Klasse laufen, damit die Effekte der Items berücksichtigt werden können. Gleiches gilt für Gesundheitsverluste und Nahrungsgewinne des Spielers, sowie die MiniGames.
+    // Zudem müssen einige Items mit dem UI interagieren (Entscheidungen bei Events hinzufügen etc.)
+    // UI muss ebenfalls überarbeitet werden: Anstatt eines Canvas werden die Items diegetisch auf einem Tisch angezeigt. Geht man mit der Maus über ein Item, wird ein Name und eine Beschreibung angezeigt, sowie der Effekt bei Zerstörung. Items werden zerstört, indem man lange ein Item gedrückt hält.
+
+
+
 
     /// <summary>
     /// Called when close button is clicked

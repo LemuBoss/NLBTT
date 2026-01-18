@@ -14,6 +14,7 @@ public class BloodpointCard_E : BloodPointEventCard
     public override void TriggerBloodPointEvent()
     {
         Debug.Log("Bloodpoint Event E triggered - Adjacent Terrain Bonus");
+        ItemManager itemManager = player.GetItemManager();
         
         // Get the BoardManager to access grid and adjacency checking
         BoardManager boardManager = Object.FindFirstObjectByType<BoardManager>();
@@ -54,7 +55,7 @@ public class BloodpointCard_E : BloodPointEventCard
         
         if (bloodpointsGained > 0)
         {
-            player.modifyBloodpoints(bloodpointsGained);
+            itemManager.ModifyPlayerBloodpoints(bloodpointsGained);
             Debug.Log($"Player gained {bloodpointsGained} bloodpoints ({adjacentTerrainCount} adjacent terrain cards × 2)");
             SetResultText($"Die Schönheit der Natur ist ein wahres Wunder. Auch die Geister des Waldes erkennen dies an. \n(Erhalte Blutpunkte für jede angrenzende Terrainkarte)\n+{bloodpointsGained} Blutpunkte erhalten.");
         }

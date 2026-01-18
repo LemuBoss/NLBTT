@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MinigameConfig_BerryPicking
   m_EditorClassIdentifier: Assembly-CSharp::MinigameConfig
   targetCircleCount: 5
-  fakeCircleCount: 1
+  fakeCircleCount: 2
   minCircleSize: 5
   maxCircleSize: 5
   minCircleTime: 5

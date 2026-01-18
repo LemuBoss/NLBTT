@@ -9,12 +9,12 @@ public class UIManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private Player player;
     [SerializeField] private BoardManager boardManager;
+    [SerializeField] private ResourceCircleDisplay resourceDisplay;
     
-    [Header("Resource Display")]
-    [SerializeField] private GameObject resourceHUDRoot; // Parent object containing all HUD elements
-    [SerializeField] private TextMeshProUGUI hungerText;
-    [SerializeField] private TextMeshProUGUI staminaText;
-    [SerializeField] private TextMeshProUGUI healthText;
+    [Header("HUD Root")]
+    [SerializeField] private GameObject resourceHUDRoot;
+    
+    [Header("Bloodpoints Display")]
     [SerializeField] private TextMeshProUGUI bloodpointsText;
     
     [Header("Altar Interaction")]
@@ -25,45 +25,55 @@ public class UIManager : MonoBehaviour
     
     private void Start()
     {
-        // Auto-find Player and BoardManager if not assigned
+        // Auto-find components
         if (player == null)
             player = Object.FindFirstObjectByType<Player>();
         if (boardManager == null)
             boardManager = Object.FindFirstObjectByType<BoardManager>();
+        if (resourceDisplay == null)
+            resourceDisplay = GetComponent<ResourceCircleDisplay>();
         
+        // Validate references
         if (player == null)
             Debug.LogError("UIManager: Player not found!");
         if (boardManager == null)
             Debug.LogError("UIManager: BoardManager not found!");
+        if (resourceDisplay == null)
+            Debug.LogError("UIManager: ResourceCircleDisplay not found! Add component to UIManager.");
         
         // Hide altar prompt initially
         if (altarPromptText != null)
             altarPromptText.gameObject.SetActive(false);
         
-        // Ensure HUD is visible at start
+        // Show HUD at start
         ShowHUD();
+        
+        // Initialize displays
+        if (player != null && resourceDisplay != null)
+        {
+            resourceDisplay.UpdateHealth(player.GetHealth());
+            resourceDisplay.UpdateHunger(player.GetHunger(), player.GetHungerCap());
+        }
     }
     
     private void Update()
     {
         bool isGamePaused = PauseMenuManager.IsGamePaused();
         
-        // Detect when game transitions from paused to unpaused
+        // Detect unpause
         if (wasGamePausedLastFrame && !isGamePaused)
         {
-            // Just unpaused - force show HUD
             ShowHUD();
             Debug.Log("[UIManager] Game unpaused - showing HUD");
         }
         
-        // Hide HUD when game is paused
+        // Hide HUD when paused
         if (isGamePaused)
         {
             HideHUD();
         }
         else
         {
-            // Show HUD and update when not paused
             ShowHUD();
             UpdateResourceDisplay();
             UpdateAltarDisplay();
@@ -73,45 +83,41 @@ public class UIManager : MonoBehaviour
     }
     
     /// <summary>
-    /// Updates the resource counter display
+    /// Updates the resource display
     /// </summary>
     private void UpdateResourceDisplay()
     {
-        if (player == null)
+        if (player == null || resourceDisplay == null)
             return;
         
-        if (hungerText != null)
-            hungerText.text = $"NAHRUNG: {player.GetHunger()}/{player.GetHungerCap()} [2] ZUM UMWANDELN";
+        // Update visual circle displays
+        resourceDisplay.UpdateHealth(player.GetHealth());
+        resourceDisplay.UpdateHunger(player.GetHunger(), player.GetHungerCap());
         
-        if (staminaText != null)
-            staminaText.text = $"AUSDAUER: {player.GetStamina()}/{player.GetStaminaCap()}";
-        
-        if (healthText != null)
-            healthText.text = $"GESUNDHEIT: {player.GetHealth()} [1] ZUM UMWANDELN";
-        
+        // Update bloodpoints text
         if (bloodpointsText != null)
             bloodpointsText.text = $"BLUTPUNKTE: {player.GetBloodpoints()}";
     }
     
     /// <summary>
-    /// Updates Altar display and shows prompt only when player is on Altar
+    /// Updates Altar display
     /// </summary>
     private void UpdateAltarDisplay()
     {
         if (player == null || boardManager == null)
             return;
         
-        // Check if player is standing on an Altar
+        // Check if player is on Altar
         Card currentCard = boardManager.GetCardAt(player.GetPosition().x, player.GetPosition().y);
         bool isOnAltar = currentCard != null && currentCard is AltarCard;
         
-        // Show/hide altar prompt based on position
+        // Show/hide altar prompt
         if (altarPromptText != null)
         {
             if (isOnAltar)
             {
                 altarPromptText.gameObject.SetActive(true);
-                altarPromptText.text = $"ENTER UM BLUTPUNKE ZU TRANSFERIEREN";
+                altarPromptText.text = "ENTER UM BLUTPUNKTE ZU TRANSFERIEREN";
             }
             else
             {
@@ -119,7 +125,7 @@ public class UIManager : MonoBehaviour
             }
         }
         
-        // Update bloodpoints stored in altar
+        // Update bloodpoints in altar
         if (bloodpointsInAltarText != null)
             bloodpointsInAltarText.text = $"BLUTPUNKTE IM ALTAR: {player.GetBloodpointsInAltar()}/{player.GetAltarRequirement()}";
     }
@@ -145,4 +151,23 @@ public class UIManager : MonoBehaviour
             resourceHUDRoot.SetActive(true);
         }
     }
+    
+    /// <summary>
+    /// Resets the UI display
+    /// </summary>
+    public void ResetDisplay()
+    {
+        if (resourceDisplay != null)
+        {
+            resourceDisplay.ResetDisplay();
+        }
+        
+        if (player != null && resourceDisplay != null)
+        {
+            resourceDisplay.UpdateHealth(player.GetHealth());
+            resourceDisplay.UpdateHunger(player.GetHunger(), player.GetHungerCap());
+        }
+    }
 }
+
+

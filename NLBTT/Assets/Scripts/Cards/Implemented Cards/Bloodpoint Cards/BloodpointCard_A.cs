@@ -11,19 +11,20 @@ public class BloodpointCard_A : BloodPointEventCard //Codeword: Price of Glutton
     public override void TriggerBloodPointEvent()
     {
         Debug.Log("Bloodpoint Event A (Price of Gluttony) triggered.");
+        ItemManager itemManager = player.GetItemManager();
         
         // Use public getter methods instead of accessing private fields
         if (player.GetHunger() <= 5)
         {
             int hungerDeficit = Mathf.Clamp(player.GetHungerCap() - player.GetHunger(), 0, 10);
-            player.modifyBloodpoints(hungerDeficit);
+            itemManager.ModifyPlayerBloodpoints(hungerDeficit);
             SetResultText($"Dein Hunger quält dich. Die dunklen Geister des Waldes belohnen dein Leiden.\n(Erhalte Blutpunkte fürs Verhungern)\n+{hungerDeficit} Blutpunkte erhalten.");
             Debug.Log($"Player received {hungerDeficit} bloodpoints");
         }
         else
         {
-            int hungerSurplus = Mathf.Clamp(player.GetHunger(), 0, 10);
-            player.modifyBloodpoints(-hungerSurplus);
+            int hungerSurplus = Mathf.Clamp(player.GetHunger(), 0, 5);
+            itemManager.ModifyPlayerBloodpoints(-hungerSurplus);
             SetResultText($"Du bist gut genährt und zufrieden. Die dunklen Geister des Waldes verachten deine Völlerei.\n(Verliere Blutpunkte für einen vollen Magen)\n-{hungerSurplus} Blutpunkte verloren.");
             Debug.Log($"Player lost {hungerSurplus} bloodpoints");
         }

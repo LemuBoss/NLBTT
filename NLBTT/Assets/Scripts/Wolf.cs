@@ -264,15 +264,38 @@ public class Wolf : MonoBehaviour
     /// <summary>
     /// Sets whether the wolf model should be visible
     /// Called by WolfAI based on whether the card is revealed
+    /// OVERRIDE: Flashlight item makes wolves always visible
     /// </summary>
     public void SetVisible(bool visible)
     {
-        isVisible = visible;
-        
+        // Check if player has flashlight
+        Player player = Object.FindFirstObjectByType<Player>();
+        bool forceVisible = false;
+    
+        if (player != null)
+        {
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null && itemManager.ShouldWolvesBeAlwaysVisible())
+            {
+                forceVisible = true;
+            }
+        }
+    
+        // Override visibility if flashlight is active
+        isVisible = forceVisible || visible;
+    
         if (wolfModelInstance != null)
         {
-            wolfModelInstance.SetActive(visible);
-            LogDebug($"Wolf at ({currentPosition.x}, {currentPosition.y}) visibility set to: {visible}");
+            wolfModelInstance.SetActive(isVisible);
+        
+            if (forceVisible && !visible)
+            {
+                LogDebug($"Wolf at ({currentPosition.x}, {currentPosition.y}) forced visible by Flashlight (card not revealed)");
+            }
+            else
+            {
+                LogDebug($"Wolf at ({currentPosition.x}, {currentPosition.y}) visibility set to: {isVisible}");
+            }
         }
     }
 

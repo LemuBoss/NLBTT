@@ -274,6 +274,7 @@ public class WolfAI : MonoBehaviour
     /// <summary>
     /// Updates visibility for all wolves based on whether their card is revealed
     /// Wolves on unrevealed cards are hidden, wolves on revealed cards are shown
+    /// OVERRIDE: Flashlight item makes all wolves visible regardless of card state
     /// </summary>
     public void UpdateAllWolfVisibility()
     {
@@ -283,25 +284,52 @@ public class WolfAI : MonoBehaviour
             return;
         }
 
-        foreach (Wolf wolf in wolves)
+        // Check if player has flashlight
+        Player player = Object.FindFirstObjectByType<Player>();
+        bool flashlightActive = false;
+    
+        if (player != null)
         {
-            if (wolf == null) continue;
-
-            Vector2Int wolfPos = wolf.GetPosition();
-            Card card = boardManager.GetCardAt(wolfPos.x, wolfPos.y);
-
-            if (card == null)
+            ItemManager itemManager = player.GetItemManager();
+            if (itemManager != null)
             {
-                // No card at position (shouldn't happen) - hide wolf
-                wolf.SetVisible(false);
-                continue;
+                flashlightActive = itemManager.ShouldWolvesBeAlwaysVisible();
             }
+        }
 
-            // Wolf is visible only if the card is revealed (not turned around)
-            bool isCardRevealed = !card.TurnedAround;
-            wolf.SetVisible(isCardRevealed);
+        if (flashlightActive)
+        {
+            // Flashlight makes ALL wolves visible
+            foreach (Wolf wolf in wolves)
+            {
+                if (wolf == null) continue;
+                wolf.SetVisible(true);
+            }
+            LogDebug("Flashlight active: All wolves are visible");
+        }
+        else
+        {
+            // Normal visibility rules
+            foreach (Wolf wolf in wolves)
+            {
+                if (wolf == null) continue;
 
-            LogDebug($"Wolf at ({wolfPos.x}, {wolfPos.y}): Card revealed = {isCardRevealed}, Wolf visible = {isCardRevealed}");
+                Vector2Int wolfPos = wolf.GetPosition();
+                Card card = boardManager.GetCardAt(wolfPos.x, wolfPos.y);
+
+                if (card == null)
+                {
+                    // No card at position (shouldn't happen) - hide wolf
+                    wolf.SetVisible(false);
+                    continue;
+                }
+
+                // Wolf is visible only if the card is revealed (not turned around)
+                bool isCardRevealed = !card.TurnedAround;
+                wolf.SetVisible(isCardRevealed);
+
+                LogDebug($"Wolf at ({wolfPos.x}, {wolfPos.y}): Card revealed = {isCardRevealed}, Wolf visible = {isCardRevealed}");
+            }
         }
     }
 

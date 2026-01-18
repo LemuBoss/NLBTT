@@ -77,9 +77,6 @@ public class GameOverUIManager : MonoBehaviour
     /// <summary>
     /// Checks if the player has met win or loss conditions
     /// </summary>
-    /// <summary>
-    /// Checks if the player has met win or loss conditions
-    /// </summary>
     private void CheckGameEndConditions()
     {
         // Check for death (loss condition)
@@ -114,7 +111,6 @@ public class GameOverUIManager : MonoBehaviour
     
     /// <summary>
     /// Gets the altar requirement from the player
-    /// You'll need to add a public getter in Player.cs: public int GetAltarRequirement() => AltarRequirements;
     /// </summary>
     private int GetAltarRequirement()
     {
@@ -182,7 +178,7 @@ public class GameOverUIManager : MonoBehaviour
         // Reset game ended flag
         isGameEnded = false;
 
-        // Rest of your existing restart code...
+        // Reset player resources
         if (player != null)
         {
             player.ResetToStartingValues();
@@ -192,6 +188,7 @@ public class GameOverUIManager : MonoBehaviour
             Debug.LogError("GameOverUIManager: Cannot reset - Player is null!");
         }
 
+        // Regenerate board
         BoardManager boardManager = Object.FindFirstObjectByType<BoardManager>();
         if (boardManager != null)
         {
@@ -208,28 +205,6 @@ public class GameOverUIManager : MonoBehaviour
         }
 
         Debug.Log("[GameOverUIManager] Game restarted successfully");
-    }
-    
-    /// <summary>
-    /// Resets the player's resources to their starting values
-    /// </summary>
-    private void ResetPlayerResources()
-    {
-        if (player == null)
-        {
-            Debug.LogError("GameOverUIManager: Cannot reset resources - Player is null!");
-            return;
-        }
-        
-        // Reset to starting values
-        // You may want to make these configurable in the Inspector
-        player.modifyHealth(5 - player.GetHealth()); // Set to 5
-        player.modifyHunger(player.GetHungerCap()); // Set to 20
-        player.modifyStamina(5 - player.GetStamina()); // Set to 5
-        player.modifyBloodpoints(-player.GetBloodpoints()); // Set to 0
-        player.modifyBloodpointCardVisited(-player.GetBloodpointCardsVisited()); // Set to 0
-        
-        Debug.Log("[GameOverUIManager] Player resources reset to starting values");
     }
     
     /// <summary>
@@ -273,3 +248,4 @@ public class GameOverUIManager : MonoBehaviour
         return manager != null && manager.IsGameEnded();
     }
 }
+

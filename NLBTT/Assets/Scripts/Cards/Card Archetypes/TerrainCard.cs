@@ -1,17 +1,19 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Base class for terrain cards that affect stamina
+/// Base class for terrain cards that affect hunger consumption
 /// </summary>
 public abstract class TerrainCard : Card
 {
     protected Player player;
+    
+    [Header("Terrain Properties")]
+    [SerializeField] protected int hungerModifier = 1; // Default movement cost
 
-    public int StaminaModifier => staminaModifier;
+    public int HungerModifier => hungerModifier;
     
     protected virtual void Start()
     {
-        // Get reference to the Player instance
         player = Object.FindFirstObjectByType<Player>();
         if (player == null)
         {
@@ -21,7 +23,8 @@ public abstract class TerrainCard : Card
 
     public override void OnPlayerEnter()
     {
-        // Call the base Card.OnPlayerEnter() to apply stamina modifier
         base.OnPlayerEnter();
+        // Hunger cost is handled by Player.TryMoveTo()
     }
 }
+

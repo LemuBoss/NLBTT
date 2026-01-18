@@ -6,6 +6,6 @@ public class PathCard : TerrainCard
     {
         title = "Pfad";
         canMoveOnto = true;
+        hungerModifier = 1; // Standard cost
     }
-    
 }
