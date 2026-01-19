@@ -452,11 +452,18 @@ MonoBehaviour:
     Karten verleihen dir Blutpunkte\r\n\u2022 Verwalte deine Ressourcen weise!\r\n\r\n<size=18>Tipps:</size>\r\n\u2022
     Plane deine Route sorgf\xE4ltig\r\n\u2022 Achte auf deine Ressourcen\r\n\u2022
     Nutze Blutpunkte strategisch"
-  creditsContent: "CREDITS\r\n\r\n<size=24>Entwickelt von</size>\r\nDein Name\r\n\r\n<size=18>Programmierung:</size>\r\nDein
-    Name\r\n\r\n<size=18>Game Design:</size>\r\nDein Name\r\n\r\n<size=18>Grafik
-    & UI:</size>\r\nDein Name\r\n\r\n<size=18>Sound & Musik:</size>\r\nDein Name\r\n\r\n<size=18>Besonderer
-    Dank an:</size>\r\nUnity Community\r\nTextMeshPro Team\r\n\r\n<size=14>\xA9 2025
-    - Alle Rechte vorbehalten</size>"
+  creditsContent: 'CREDITS
+
+    
+
+    <size=24>Entwickelt von</size>
+
+    Katja
+    & Lemuel
+
+    
+
+'
 --- !u!1 &257412400
 GameObject:
   m_ObjectHideFlags: 0
